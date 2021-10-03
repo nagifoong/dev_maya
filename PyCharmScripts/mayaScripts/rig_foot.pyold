@@ -1,0 +1,108 @@
+import pymel.all as pm
+
+from ..utils import common
+from ..tools.controllerShape import main as shape_gen
+
+
+def creaAnimInfi(name, type):  # name = "aaa.bbb"creaAnimInfi("aaa.bbb",2)
+    name, attr = name.split(".")
+    animCurve = cmds.createNode("animCurveUA", n=name + "_" + attr)
+    if type == -1:  ##Left-up
+        cmds.setKeyframe(animCurve, f=0, v=0, itt='linear', ott='linear')
+        cmds.setKeyframe(animCurve, f=-1, v=1, itt='linear', ott='linear')
+        cmds.setAttr(animCurve + ".preInfinity", 4)
+    if type == -2:  ##Left-down
+        cmds.setKeyframe(animCurve, f=0, v=0, itt='linear', ott='linear')
+        cmds.setKeyframe(animCurve, f=-1, v=-1, itt='linear', ott='linear')
+        cmds.setAttr(animCurve + ".preInfinity", 4)
+    if type == 1:  ##Right-up
+        cmds.setKeyframe(animCurve, f=0, v=0, itt='linear', ott='linear')
+        cmds.setKeyframe(animCurve, f=1, v=1, itt='linear', ott='linear')
+        cmds.setAttr(animCurve + ".postInfinity", 4)
+    if type == 2:  ##Right-down
+        cmds.setKeyframe(animCurve, f=0, v=0, itt='linear', ott='linear')
+        cmds.setKeyframe(animCurve, f=1, v=-1, itt='linear', ott='linear')
+        cmds.setAttr(animCurve + ".postInfinity", 4)
+    # cmds.setInfinity("aaa_bbb",poi="cycleRelative")
+    cmds.connectAttr(animCurve + ".output", name + "." + attr, f=1)
+    print animCurve
+    return animCurve
+
+
+def ikLegAuto(prefix, ctrl, mirror):  # 1=posX,-1=negX
+    cmds.addAttr(ctrl, ln="roll", at='double', k=1)
+    cmds.addAttr(ctrl, ln="tilt", at='double', k=1)
+    cmds.addAttr(ctrl, ln="heelPivot", at='double', k=1)
+    cmds.addAttr(ctrl, ln="toePivot", at='double', k=1)
+    cmds.addAttr(ctrl, ln="toeLift", at='double', k=1)
+    cmds.addAttr(ctrl, ln="toeCurl", at='double', k=1)
+    cmds.addAttr(ctrl, ln="toeRotZ", at='double', k=1)
+    cmds.addAttr(ctrl, ln="legTwist", at='double', k=1)
+    # mirror=1 cmds.ls(sl=1,long=1)
+    outF = cmds.spaceLocator(n=prefix + "_foot_outter")[0]
+    cmds.setAttr(outF + ".translate", 1 * mirror, 0, 0, typ="double3")
+
+    heel = cmds.spaceLocator(n=prefix + "_heel")[0]
+    cmds.setAttr(heel + ".translate", 0, 0, -1, typ="double3")
+
+    inF = cmds.spaceLocator(n=prefix + "_foot_inner")[0]
+    cmds.setAttr(inF + ".translate", -1 * mirror, 0, 0, typ="double3")
+
+    toe = cmds.spaceLocator(n=prefix + "_toe")[0]
+    cmds.setAttr(toe + ".translate", 0, 0, 1, typ="double3")
+
+    mainGrp = cmds.group(n=prefix + "_leg_ikMain_grp", em=1)
+    offGrp = cmds.group(n=prefix + "_leg_ikOffset_grp", em=1, p=mainGrp)
+    footGrp = cmds.group(n=prefix + "_foot_ikHandle_grp", em=1)
+    legGrp = cmds.group(n=prefix + "_leg_ikHandle_grp", em=1, p=footGrp)
+    toeGrp = cmds.group(n=prefix + "_toe_ikHandle_grp", em=1, p=footGrp)
+
+    cmds.setAttr(footGrp + ".translateY", 1)
+    cmds.setAttr(legGrp + ".translateY", -.5)
+    cmds.setAttr(legGrp + ".translateZ", .5)
+    cmds.setAttr(toeGrp + ".translateY", -.5)
+    cmds.setAttr(toeGrp + ".translateZ", 1)
+
+    cmds.parent(toe, outF)
+    cmds.parent(outF, inF)
+    cmds.parent(inF, heel)
+    cmds.parent(footGrp, toe)
+    cmds.parent(heel, offGrp)
+
+    cmds.connectAttr(ctrl + ".roll", creaAnimInfi(legGrp + ".rx", 1) + ".input", f=1)
+    cmds.connectAttr(ctrl + ".roll", creaAnimInfi(heel + ".rx", -2) + ".input", f=1)
+    if mirror == 1:
+        cmds.connectAttr(ctrl + ".tilt", creaAnimInfi(outF + ".rz", 2) + ".input", f=1)
+        cmds.connectAttr(ctrl + ".tilt", creaAnimInfi(inF + ".rz", -1) + ".input", f=1)
+    else:
+        cmds.connectAttr(ctrl + ".tilt", creaAnimInfi(outF + ".rz", 1) + ".input", f=1)
+        cmds.connectAttr(ctrl + ".tilt", creaAnimInfi(inF + ".rz", -2) + ".input", f=1)
+
+    cmds.connectAttr(ctrl + ".heelPivot", heel + ".ry")
+    cmds.connectAttr(ctrl + ".toePivot", toe + ".ry")
+    cmds.connectAttr(ctrl + ".toeLift", toe + ".rx")
+    cmds.connectAttr(ctrl + ".toeCurl", toeGrp + ".rx")
+    cmds.connectAttr(ctrl + ".toeRotZ", toeGrp + ".rz")
+
+    if mirror == -1:
+        heeluC = cmds.listConnections(ctrl + ".heelPivot")[0]
+        cmds.setAttr(heeluC + ".conversionFactor", cmds.getAttr(heeluC + ".conversionFactor") * mirror)
+        toePvtuC = cmds.listConnections(ctrl + ".toePivot")[0]
+        cmds.setAttr(toePvtuC + ".conversionFactor", cmds.getAttr(toePvtuC + ".conversionFactor") * mirror)
+        toeRotZuC = cmds.listConnections(ctrl + ".toeRotZ")[0]
+        cmds.setAttr(toeRotZuC + ".conversionFactor", cmds.getAttr(toeRotZuC + ".conversionFactor") * mirror)
+
+    cmds.parentConstraint(ctrl, mainGrp, mo=0)
+
+
+ikCt = cmds.ls(sl=1)
+if len(ikCt) <= 1:
+    if ikCt == []:
+        ctrlAuto = \
+        cmds.circle(c=(0, 0, 0), nr=(0, 1, 0), sw=360, r=1, d=3, ut=0, tol=0.01, s=8, ch=1, n="CTRL_" + prefix + "_IK")[
+            0]
+    else:
+        ctrlAuto = ikCt[0]
+    ikLegAuto("Left", ctrlAuto, 1)
+else:
+    pass

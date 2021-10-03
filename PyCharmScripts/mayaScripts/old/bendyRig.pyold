@@ -1,0 +1,556 @@
+import pymel.all as pm
+
+from PyCharmScripts.utils import channels, common
+
+reload(channels)
+reload(common)
+
+aimVs = {'l': {'x': [1, 0, 0], 'y': [0, 1, 0], 'z': [0, 0, 1]},
+         'r': {'x': [-1, 0, 0], 'y': [0, -1, 0], 'z': [0, 0, -1]}}
+upVs = {'l': {'x': [0, 0, 1], 'y': [1, 0, 0], 'z': [1, 0, 0]},
+        'r': {'x': [0, 0, -1], 'y': [-1, 0, 0], 'z': [-1, 0, 0]}}
+
+suffixKeys = {0: 'start', 1: 'mid', 2: 'end'}
+tangentOffset = {0: 0.001, 1: .5, 2: 0.001}
+
+
+def create_bendy(joint_list=None, prefix="ribbon", side='l', forward='x', up='z', con_scale=1):
+    """
+    create ribbon with providing exact two joints in joint list
+    :param up: up axis
+    :param joint_list: [list], accept two joints only
+    :param prefix:
+    :param side:
+    :param forward: forward axis
+    :param con_scale: scale of cons
+    :return:
+    """
+    if joint_list is None:
+        joint_list = []
+
+    full_name = "{}_{}".format(side, prefix)
+
+    '''make sure side is either "l" or "r"'''
+    if side.lower() not in 'lr':
+        # r is with normal forward and up axis
+        side = 'r'
+
+    con_dict = {}
+    surf_jnts = []
+    jnts = []
+
+    rad = joint_list[0].radius.get() / 2.0
+    rot = 'r' + forward
+    trns = 't' + forward
+
+    # check 1st joint parent
+    prnt = joint_list[0].getParent()
+    if not prnt:
+        prnt = pm.spaceLocator(name="{}_GRP".format(joint_list[0]))
+        pm.delete(pm.parentConstraint(joint_list[0], prnt))
+        prnt.addChild(joint_list[0])
+
+    '''main groups'''
+    main_nul_grp = pm.group(name="{}_bendy_NUL_GRP".format(full_name), em=1)
+    pm.delete(pm.parentConstraint(joint_list[0], main_nul_grp))
+    pm.parentConstraint(prnt, main_nul_grp, mo=1)
+    pm.scaleConstraint(prnt, main_nul_grp, mo=1)
+
+    main_con_grp = pm.group(name="{}_bendy_CON_GRP".format(full_name), em=1, parent=main_nul_grp)
+    pm.parentConstraint(joint_list[0], main_con_grp)
+
+    main_jnt_grp = pm.group(name="{}_bendy_JNT_GRP".format(full_name), em=1)
+    main_util_grp = pm.group(name="{}_bendy_util_GRP".format(full_name), em=1)
+    global_scale = pm.group(name='{}_globalScale'.format(full_name), em=1, p=main_util_grp)
+    pm.scaleConstraint(prnt, global_scale)
+
+    # Add attributes
+    main_grp = main_nul_grp
+    main_grp.addAttr('disableBend', min=0, max=1, dv=0, k=1, at='double')
+    main_grp.addAttr('autoTwist', min=0, max=1, dv=1, k=1, at='double')
+    main_grp.addAttr('bendUpDown', k=1, at='double')
+    main_grp.addAttr('bendFrontBack', k=1, at='double')
+    main_grp.addAttr('twistStart', k=1, at='double')
+    main_grp.addAttr('twistEnd', k=1, at='double')
+    main_grp.addAttr('twistStartEnable', k=1, at='double', min=0, max=1, dv=1)
+    main_grp.addAttr('twistEndEnable', k=1, at='double', min=0, max=1, dv=1)
+    main_grp.addAttr('twistStartRotateOrder', k=1, at='enum', en='xyz:yzx:zxy:xzy:yxz:zyx')
+    main_grp.twistStartRotateOrder.set(3, k=0, cb=1)
+    main_grp.addAttr('twistEndRotateOrder', k=1, at='enum', en='xyz:yzx:zxy:xzy:yxz:zyx')
+    main_grp.twistEndRotateOrder.set(3, k=0, cb=1)
+    main_grp.addAttr('squash', min=0, max=1, dv=1, k=1, at='double')
+    main_grp.addAttr('volume', min=0, dv=1, k=1, at='double')
+
+    # disable twistStart and twistEnd value
+    auto_node = pm.createNode('multiplyDivide', name='{}_autoTwist_MULT'.format(full_name))
+    main_grp.twistStart.connect(auto_node.input1X)
+    main_grp.twistEnd.connect(auto_node.input1Z)
+    main_grp.autoTwist.connect(auto_node.input2X)
+    main_grp.autoTwist.connect(auto_node.input2Z)
+
+    # negate twist from grp
+    neg_node = pm.createNode('plusMinusAverage', name='{}_negate_prntTwist'.format(full_name))
+    neg_node.operation.set(2)
+
+    main_con_grp.attr(rot).connect(neg_node.input3D[1].input3Dx)
+    auto_node.outputX.connect(neg_node.input3D[0].input3Dx)
+    auto_node.outputZ.connect(neg_node.input3D[0].input3Dz)
+
+    '''create bezier curve'''
+    st_jnt, ed_jnt = joint_list
+    st_pos = pm.xform(st_jnt, q=1, ws=1, t=1)
+    ed_pos = pm.xform(ed_jnt, q=1, ws=1, t=1)
+    pos_list = [st_pos]
+    diff_pos = (ed_pos[0] - st_pos[0]) / 6.0, (ed_pos[1] - st_pos[1]) / 6.0, (ed_pos[2] - st_pos[2]) / 6.0
+    for q in range(1, 7):
+        pos_list.append((pos_list[-1][0] + diff_pos[0], pos_list[-1][1] + diff_pos[1], pos_list[-1][2] + diff_pos[2]))
+
+    b_crv = pm.curve(name="{}_CRV".format(full_name), bezier=1, p=pos_list)
+
+    '''create tangent controllers and attributes'''
+    suffix = 0
+    ite = 1
+    mult_node = ''
+    for ind, pos in enumerate(pos_list):
+        pm.select(cl=1)
+        jnt = pm.joint(name='{}_temp_surfJNT'.format(full_name))
+        jnt.radius.set(rad)
+        surf_jnts.append(jnt)
+        loc = pm.spaceLocator(name="{}_temp_LOC".format(full_name))
+        loc.addChild(jnt)
+        loc.v.set(0, l=1)
+        if ite == 1:
+            con = pm.circle(name=loc.replace('LOC', "CON"), ch=0)[0]
+            con.s.set([con_scale, con_scale, con_scale])
+            pm.makeIdentity(con, apply=1, s=1)
+        else:
+            con = pm.spaceLocator(name=loc.replace('LOC', 'CON'))
+            con.s.set([con_scale * .8, con_scale * .8, con_scale * .8])
+            pm.makeIdentity(con, apply=1, s=1)
+            # channels.lock_channels(con, rotates=[1, 1, 1], scales=[1, 1, 1], visibility=1)
+            # channels.display_channels(con, rotates=[0, 0, 0], scales=[0, 0, 0], visibility=0)
+
+        drv_grp = pm.group(name="{}_DRV_GRP".format(con), em=1)
+        con_grp = pm.group(name="{}_GRP".format(con))
+        drv_grp.addChild(con)
+        con.addChild(loc)
+        con_grp.t.set(pos)
+        con_grp.r.set(pm.xform(main_grp, q=1, ws=1, ro=1))
+        loc.worldPosition.connect(b_crv.controlPoints[ind])
+
+        temp_list = [con_grp, drv_grp, con, loc, jnt]
+        if ite == 2:
+            con_dict[suffixKeys[suffix]][1][2].addChild(con_grp)
+            con_dict[suffixKeys[suffix]][1][2].tangentConVis.connect(con_grp.v)
+            mult_node.outputZ.connect(drv_grp.attr(trns))
+            mult_node.input2Z.set(con_grp.attr(trns).get())
+            con_grp.attr(trns).set(0)
+
+            con_dict[suffixKeys[suffix]].append(temp_list)
+            for obj in temp_list:
+                obj.rename(obj.replace('temp', "{}subB".format(str(suffix))))
+            ite = 0
+            suffix += 1
+            continue
+        if ite == 1:
+            con.addAttr('tangentConVis', at='double', min=0, max=1, dv=0, k=1)
+            con.addAttr('tangentOffset', at='double', min=0.001, dv=1, k=1)
+            mult_node = pm.createNode('multiplyDivide', name="{}_tangentOffset_MULT".format(con))
+            con.tangentOffset.connect(mult_node.input1X)
+            con.tangentOffset.connect(mult_node.input1Z)
+
+            if ind != 0:
+                con.addChild(con_dict[suffixKeys[suffix]][0][0])
+                con_dict[suffixKeys[suffix]].append(temp_list)
+                con.tangentConVis.connect(con_dict[suffixKeys[suffix]][0][0].v)
+                mult_node.outputX.connect(con_dict[suffixKeys[suffix]][0][1].attr(trns))
+                mult_node.input2X.set(con_dict[suffixKeys[suffix]][0][0].attr(trns).get())
+                con_dict[suffixKeys[suffix]][0][0].attr(trns).set(0)
+            else:
+                con_dict[suffixKeys[suffix]] = [[], temp_list]
+            for obj in temp_list:
+                obj.rename(obj.replace('temp', str(suffix)))
+        else:
+            con_dict[suffixKeys[suffix]] = [temp_list]
+            for obj in temp_list:
+                obj.rename(obj.replace('temp', "{}subA".format(str(suffix))))
+
+        ite += 1
+
+    front = 'xyz'.replace(up, '').replace(forward, '')
+    front_at = 't' + front
+
+    up_dn_uc = pm.createNode('unitConversion', name='{}_bendUpDown_UC'.format(full_name))
+    up_dn_uc.conversionFactor.set(-1 if side == 'r' else 1)
+    main_grp.bendUpDown.connect(up_dn_uc.input)
+    up_dn_uc.output.connect(con_dict['mid'][1][1].attr('t' + up))
+
+    fnt_bk_uc = pm.createNode('unitConversion', name='{}_bendFrontBack_UC'.format(full_name))
+    fnt_bk_uc.conversionFactor.set(-1 if side == 'r' else 1)
+    main_grp.bendFrontBack.connect(fnt_bk_uc.input)
+    fnt_bk_uc.output.connect(con_dict['mid'][1][1].attr(front_at))
+
+    # constraint start and end controller groups to joint_list
+    pm.pointConstraint(joint_list[0], con_dict['start'][1][0], mo=1)
+    pm.pointConstraint(joint_list[1], con_dict['end'][1][0], mo=1)
+
+    # constraint mid controller
+    pm.pointConstraint(con_dict['start'][1][2], con_dict['end'][1][2], con_dict['mid'][1][0])
+    pm.aimConstraint(con_dict['end'][1][2], con_dict['mid'][1][0], aimVector=aimVs[side][forward],
+                     upVector=upVs[side][forward], worldUpType='object', worldUpObject=con_dict['start'][1][2])
+
+    # twist attribute
+    con_dict['start'][1][2].addAttr('twist', at='double', dv=0, k=1)
+    con_dict['end'][1][2].addAttr('twist', at='double', dv=0, k=1)
+
+    '''grouping for disabling bendy'''
+    mid_sub_a_const_grp = pm.group(name="{}_midSubA_const_GRP".format(full_name), em=1)
+    mid_sub_b_const_grp = pm.group(name="{}_midSubB_const_GRP".format(full_name), em=1)
+    mid_const_grp = pm.group(name="{}_mid_const_GRP".format(full_name), em=1)
+
+    pm.parent(mid_const_grp, mid_sub_a_const_grp, mid_sub_b_const_grp, con_dict['mid'][1][0])
+    pm.delete(pm.parentConstraint(con_dict['mid'][1][2], mid_const_grp))
+
+    # pair blend for constraints
+    for ind, constGrp in enumerate([mid_sub_a_const_grp, mid_const_grp, mid_sub_b_const_grp]):
+        const = pm.parentConstraint(con_dict['mid'][ind][2], constGrp)
+        pb_node = pm.createNode('pairBlend', name="{}_pairBlend".format(const))
+        main_grp.disableBend.connect(pb_node.weight)
+        const.constraintTranslate.connect(pb_node.inTranslate1)
+        const.constraintRotate.connect(pb_node.inRotate1)
+        pb_node.inTranslate2.set(pb_node.inTranslate1.get(), l=1)
+        pb_node.inRotate2.set(pb_node.inRotate1.get(), l=1)
+        for ax in 'xyz':
+            pb_node.attr('outTranslate' + ax.upper()).connect(constGrp.attr('t' + ax), f=1)
+            pb_node.attr('outRotate' + ax.upper()).connect(constGrp.attr('r' + ax), f=1)
+        pm.parent(con_dict['mid'][ind][3], constGrp)
+    pm.parent(con_dict['start'][1][0], con_dict['end'][1][0], con_dict['mid'][1][0], main_con_grp)
+
+    '''Squash calculation'''
+    crv_info = pm.arclen(b_crv, ch=1)
+    crv_info.rename("{}_crvInfo".format(b_crv))
+    scale_fix = pm.createNode('multiplyDivide', name="{}_bendy_scaleFix_MULT".format(full_name))
+    global_scale.s.connect(scale_fix.input1)
+    scale_fix.input2X.set(crv_info.arcLength.get())
+
+    norm_node = pm.createNode('multiplyDivide', name="{}_squash_NORM".format(full_name))
+    norm_node.operation.set(2)
+    crv_info.arcLength.connect(norm_node.input1X)
+    scale_fix.outputX.connect(norm_node.input2X)
+
+    invr_node = pm.createNode('multiplyDivide', name="{}_squash_INVR".format(full_name))
+    invr_node.operation.set(2)
+    invr_node.input1X.set(1)
+    norm_node.outputX.connect(invr_node.input2X)
+
+    sqrt_node = pm.createNode('multiplyDivide', name="{}_squash_SQRT".format(full_name))
+    sqrt_node.operation.set(3)
+    sqrt_node.input2X.set(.5)
+    invr_node.outputX.connect(sqrt_node.input1X)
+
+    squash_switch = pm.createNode('blendColors', name="{}_squashSwitch_BLND".format(full_name))
+    main_grp.squash.connect(squash_switch.blender)
+    sqrt_node.outputX.connect(squash_switch.color1R)
+    squash_switch.color2R.set(1)
+
+    vol_mult_node = pm.createNode('multiplyDivide', name="{}_squashAdd_MULT".format(full_name))
+    main_grp.volume.connect(vol_mult_node.input2X)
+    squash_switch.outputR.connect(vol_mult_node.input1X)
+
+    '''twist'''
+    twst_main = pm.group(name="{}_twist_main_GRP".format(prefix), em=1)
+    main_util_grp.addChild(twst_main)
+
+    for ind, jnt in enumerate(joint_list):
+        twist_parent = pm.group(name="{}_{}_twist_GRP".format(prefix, jnt), em=1, p=twst_main)
+        twst_base = pm.group(name="{}_{}_extractTwistBase".format(prefix, jnt), em=1, p=twist_parent)
+        result = pm.group(name="{}_{}_extractTwistData".format(prefix, jnt), em=1, p=twst_base)
+        twst_end = pm.group(name="{}_{}_extractTwistEnd".format(prefix, jnt), em=1)
+
+        pm.delete(pm.parentConstraint(jnt, twist_parent))
+        # twist_parent.r.set([0, 0, 0])
+
+        # make sure end jnt is pointing same direction as start jnt
+        if ind + 1 < len(joint_list):
+            pm.delete(pm.parentConstraint(joint_list[ind + 1], twst_end))
+        else:
+            pm.delete(pm.parentConstraint(joint_list[ind-1], twist_parent))
+
+            pm.delete(pm.parentConstraint(jnt, twst_end))
+            joint_list[ind-1].addChild(twst_end)
+            # jnt.addChild(twst_end)
+            twst_end.attr('t' + forward).set(jnt.attr('t' + forward).get() * 1.5)
+        pm.parent(twst_end, twist_parent)
+
+        twst_end.r.set([0, 0, 0])
+
+        # twist base aiming twist end
+        pm.aimConstraint(twst_end, twst_base, wut='none', aimVector=aimVs[side][forward], upVector=upVs[side][forward])
+
+        pm.pointConstraint(jnt, twst_base, mo=1)
+        orient_node = pm.orientConstraint(jnt, twst_base, result)
+
+        # attribute name and multiplier
+        at_name = 'Start' if ind == 0 else 'End'
+        mult_val = 2 if side == 'l' else -2
+
+        # disable blend on constraint
+        orient_weight_list = orient_node.getWeightAliasList()
+        main_grp.attr('twist{}Enable'.format(at_name)).connect(orient_weight_list[0])
+        main_grp.attr('twist{}RotateOrder'.format(at_name)).connect(result.ro)
+
+        # multiply rotate value by 2 to get actual rotate value
+        mult = pm.createNode('multiplyDivide', name="{}_MULT".format(result))
+        mult.i1x.set(mult_val)
+
+        result.attr('r' + forward).connect(mult.input2X)
+        if ind == 0:
+            mult.outputX.connect(main_grp.twistStart)
+        else:
+            mult.outputX.connect(main_grp.twistEnd)
+
+        prnt = jnt.getParent()
+        if ind != 0:
+            prnt = joint_list[ind-1]
+        pm.parentConstraint(prnt, twist_parent, mo=1)
+        pm.scaleConstraint(prnt, twist_parent, mo=1)
+
+    '''create nurbsSurface'''
+    temp_crv_a = pm.duplicate(b_crv, rr=1)[0]
+    temp_crv_b = pm.duplicate(b_crv, rr=1)[0]
+    pm.xform(temp_crv_a, temp_crv_b, piv=pm.xform(main_grp, q=1, ws=1, piv=1)[:3])
+    pm.parent(temp_crv_a, temp_crv_b, main_grp)
+    pm.makeIdentity(temp_crv_a, temp_crv_b, a=1)
+
+    offset_crv = [0, 0, 0.5]
+    if forward == 'z':
+        offset_crv = [0.5, 0, 0]
+
+    pm.move(temp_crv_a, offset_crv[0], offset_crv[1], offset_crv[2], r=1, os=1)
+    pm.move(temp_crv_b, offset_crv[0] * -1, offset_crv[1] * -1, offset_crv[2] * -1, r=1, os=1)
+
+    res_surface = pm.loft(temp_crv_a, temp_crv_b, name="{}_bendy_SURF".format(full_name),
+                          ch=0, u=1, c=0, ar=1, d=1, ss=1, rn=0, po=0, rsn=True)[0]
+    scl_node = pm.skinCluster(surf_jnts, res_surface, name="{}_SCL".format(res_surface))
+
+    for ind, jnt in enumerate(surf_jnts):
+        pm.skinPercent(scl_node, res_surface.cv[ind][0:1], tv=[jnt, 1])
+
+    '''make sure two ends tangent is zero'''
+    con_dict['start'][1][2].tangentOffset.set(.001)
+    con_dict['end'][1][2].tangentOffset.set(.001)
+
+    '''create skin joints and attach them to the surface'''
+    res_jnt_count = 5
+    jnt_diff = 1.0 / (res_jnt_count - 1)
+    const_diff = 1.0 / (res_jnt_count - 1)
+    val = 0
+    temp_loc = pm.spaceLocator()
+    temp_node = pm.createNode('closestPointOnSurface')
+    const = pm.parentConstraint(joint_list, temp_loc)
+    weight_list = const.getWeightAliasList()
+    weight_list[0].set(0)
+    weight_list[1].set(1)
+
+    temp_loc.worldPosition.connect(temp_node.inPosition)
+    res_surface.worldSpace.connect(temp_node.inputSurface)
+
+    weight_list[0].set(1 - val)
+    weight_list[1].set(val)
+
+    loc_main_grp = pm.group(name="{}_loc_main_GRP".format(full_name), p=main_util_grp, em=1)
+    for ind in range(res_jnt_count):
+        pm.select(cl=1)
+        jnt = pm.joint(name='{}_bendy{}_result_JNT'.format(full_name, ind + 1))
+        # jnt.inheritsTransform.set(0)
+        jnt.radius.set(rad)
+        joint_list[0].addChild(jnt)
+        jnts.append(jnt)
+        loc = pm.spaceLocator(name=jnt.replace('JNT', 'LOC'))
+        jnt_off = pm.group(name="{}_offset_GRP".format(loc))
+        jnt_grp = pm.group(name="{}_GRP".format(loc))
+
+        # constrain jnt to loc
+        common.create_matrix_constrain([loc, jnt])
+
+        pnt_surf_info = pm.createNode('pointOnSurfaceInfo', name=jnt.replace("JNT", "pointOnSurfaceInfo"))
+        par_u = temp_node.parameterU.get()
+        pnt_surf_info.parameterU.set(par_u)
+        pnt_surf_info.parameterV.set(.5)
+        res_surface.worldSpace.connect(pnt_surf_info.inputSurface)
+
+        fourb4_mat = pm.createNode('fourByFourMatrix', name=jnt.replace("JNT", "4By4Matrix"))
+        for i, ax in enumerate('xyz'):
+            pnt_surf_info.attr('tangentU' + ax).connect(fourb4_mat.attr('in0{}'.format(i)))
+            pnt_surf_info.attr('normal' + ax.upper()).connect(fourb4_mat.attr('in1{}'.format(i)))
+            pnt_surf_info.attr('tangentV' + ax).connect(fourb4_mat.attr('in2{}'.format(i)))
+            pnt_surf_info.attr('position' + ax.upper()).connect(fourb4_mat.attr('in3{}'.format(i)))
+
+        decomp = pm.createNode('decomposeMatrix', name=jnt.replace("JNT", "decompMatrix"))
+        fourb4_mat.output.connect(decomp.inputMatrix)
+        decomp.outputTranslate.connect(jnt_grp.t)
+        decomp.outputRotate.connect(jnt_grp.r)
+        jnt_grp.inheritsTransform.set(0)
+        if ind < (res_jnt_count - 1):
+            val += const_diff
+            weight_list[0].set(1 - val)
+            weight_list[1].set(val)
+
+        # twist system
+        twst_pref = jnt.replace('bendy', 'twist').replace('_result_JNT', '')
+        twst_start_add_node = pm.createNode('plusMinusAverage', name='{}_start_SUM'.format(twst_pref))
+
+        neg_node.output3Dx.connect(twst_start_add_node.input1D[0])
+        con_dict['start'][1][2].twist.connect(twst_start_add_node.input1D[1])
+
+        twst_end_add_node = pm.createNode('plusMinusAverage', name='{}_end_SUM'.format(twst_pref))
+        neg_node.output3Dz.connect(twst_end_add_node.input1D[0])
+        con_dict['end'][1][2].twist.connect(twst_end_add_node.input1D[1])
+
+        twst_mult = pm.createNode('multiplyDivide', name='{}_MULT'.format(twst_pref))
+        twst_start_add_node.output1D.connect(twst_mult.input1X)
+        twst_end_add_node.output1D.connect(twst_mult.input1Z)
+        twst_mult.input2Z.set(jnt_diff * ind)
+        twst_mult.input2X.set(1 - twst_mult.input2Z.get())
+
+        twst_amount_node = pm.createNode('plusMinusAverage', name='{}_total_SUM'.format(twst_pref))
+        twst_mult.outputX.connect(twst_amount_node.input1D[0])
+        twst_mult.outputZ.connect(twst_amount_node.input1D[1])
+        twst_amount_node.output1D.connect(jnt_off.rx)
+
+        # squash switch
+        vol_mult_node.outputX.connect(loc.sy)
+        vol_mult_node.outputX.connect(loc.sz)
+
+        # global scale
+        global_scale.s.connect(jnt_grp.s)
+
+        loc_main_grp.addChild(jnt_grp)
+
+    '''clean up'''
+    pm.delete(temp_loc, temp_node, temp_crv_a, temp_crv_b)
+    pm.parent(res_surface, b_crv, main_util_grp)
+
+    return {'result_jnts': jnts, 'main_grps': [main_nul_grp, main_con_grp, main_jnt_grp, main_util_grp],
+            'cons': con_dict, 'scale_node': global_scale, 'driver': main_grp}
+
+
+def create_bendy_limbs(joint_list=None, side='l', forward='y', prefix='arm', parent_to='', con_scale=1, attr_con=''):
+    """
+    create a bendy limb rig with exactly 3 joints
+    :param joint_list: [up, mid, lo]
+    :param side:
+    :param forward: forward axis
+    :param prefix: prefix for the chain
+    :param parent_to:
+    :param con_scale:
+    :param attr_con:
+    :return:
+    """
+    if joint_list is None:
+        joint_list = []
+    if len(joint_list) != 3:
+        print "joint_list expecting 3 objects only."
+        return
+
+    '''Main groups'''
+    full_name = "{}_{}_bendy".format(side, prefix)
+    con_grp = pm.group(name='{}_CON_GRP'.format(full_name), em=1)
+    util_grp = pm.group(name='{}_util_GRP'.format(full_name), em=1)
+    util_grp.v.set(0)
+    jnt_grp = pm.group(name='{}_JNT_GRP'.format(full_name), em=1)
+
+    global_scale = pm.group(name='{}_tempScale_GRP'.format(full_name), em=1)
+
+    '''Bendy System'''
+    prefs = {'arm': ['upArm', 'foreArm'], 'leg': ['thigh', 'calf']}
+    up_limb = create_bendy(joint_list=joint_list[:-1], prefix=prefs[prefix][0], side=side,
+                           forward=forward, con_scale=con_scale)
+    lo_limb = create_bendy(joint_list=joint_list[1:], prefix=prefs[prefix][1], side=side,
+                           forward=forward, con_scale=con_scale)
+
+    up_limb['driver'].twistStartEnable.set(0)
+    # lo_limb['driver'].twistStartEnable.set(0)
+
+    # Connect scale fix
+    for scale_fix in [up_limb['scale_node'], lo_limb['scale_node']]:
+        # remove constrain
+        const = scale_fix.sx.inputs(type='constraint')
+        if scale_fix.sx.inputs(type='constraint'):
+            pm.delete(const)
+
+        pm.scaleConstraint(global_scale, scale_fix)
+
+    # make up_limb end con follow lo_limb start con
+    for at in lo_limb['cons']['start'][1][2].listAttr(k=1, ud=1):
+        at.connect(up_limb['cons']['end'][1][2].attr(at.attrName()))
+    up_limb['cons']['end'][1][2].getShape().v.set(0)
+    pm.pointConstraint(lo_limb['cons']['start'][1][2], up_limb['cons']['end'][1][2])
+    lo_limb['cons']['start'][1][2].r.connect(up_limb['cons']['end'][1][2].r)
+
+    # bend in out
+    for at in ['UpDown', 'FrontBack']:
+        at_name = 'bend{}'.format(at)
+        lo_limb['cons']['start'][1][2].addAttr(at_name, at='double', k=1, dv=0)
+        lo_limb['cons']['start'][1][2].attr(at_name).connect(up_limb['driver'].attr(at_name))
+        lo_limb['cons']['start'][1][2].attr(at_name).connect(lo_limb['driver'].attr(at_name))
+    if prefix == 'leg':
+        pm.renameAttr(lo_limb['cons']['start'][1][2].bendUpDown, 'bendSideway')
+
+    # make middle cons blend between rotation
+    print '==DEBUG==', up_limb['cons']['end'][0][0]
+    print lo_limb['cons']['start'][-1][0]
+    up_limb_sub = up_limb['cons']['end'][0][0]
+    pm.orientConstraint(joint_list[1], up_limb_sub, mo=1)
+    common.create_constrain_blend(up_limb_sub, t=False)
+    up_limb_sub.const_blend.set(.5)
+
+    lo_limb_sub = lo_limb['cons']['start'][-1][0]
+    pm.orientConstraint(joint_list[0], lo_limb_sub, mo=1)
+    common.create_constrain_blend(lo_limb_sub, t=False)
+    lo_limb_sub.const_blend.set(.5)
+
+    '''clean up'''
+    pm.parent(up_limb['main_grps'][0], lo_limb['main_grps'][0], con_grp)
+    pm.parent(up_limb['main_grps'][-2], lo_limb['main_grps'][-2], jnt_grp)
+    pm.parent(up_limb['main_grps'][-1], lo_limb['main_grps'][-1], util_grp)
+
+    # lock attribute
+    for limb in [up_limb['cons'], lo_limb['cons']]:
+        for subs in [limb['start'], limb['mid'], limb['end']]:
+            for sub in subs:
+                if not sub:
+                    continue
+                for obj in sub:
+                    # continue
+                    if not obj.name().endswith("_CON"):
+                        channels.cb_status(obj, all=1, lock=1)
+                        # channels.display_channels(obj, all=0, visibility=0)
+                    else:
+                        channels.cb_status(obj, scales='xyz', v=1, lock=1, show=0)
+                        # channels.display_channels(obj, v=0)
+    # pm.select(up_limb['result_jnts'], lo_limb['result_jnts'])
+    if attr_con:
+        if not isinstance(attr_con, pm.PyNode):
+            attr_con = pm.PyNode(attr_con)
+        attr_con.addAttr('__BENDY__', at='enum', en='___:', k=1)
+        attr_con.__BENDY__.set(l=1)
+        attr_con.addAttr('bendyConViz', min=0, max=1, dv=0, k=1, at='double')
+        attr_con.bendyConViz.connect(con_grp.v)
+        attr_con.addAttr('squash', min=0, max=1, dv=1, k=1, at='double')
+        attr_con.squash.connect(up_limb['main_grps'][0].squash)
+        attr_con.squash.connect(lo_limb['main_grps'][0].squash)
+
+        attr_con.addAttr('upperWidth', dv=1, k=1, at='double')
+        attr_con.upperWidth.connect(up_limb['main_grps'][0].volume)
+
+        attr_con.addAttr('lowerWidth', dv=1, k=1, at='double')
+        attr_con.lowerWidth.connect(lo_limb['main_grps'][0].volume)
+
+    if parent_to:
+        pm.parent(con_grp, jnt_grp, parent_to)
+
+    if pm.ls('noTouch'):
+        pm.parent(util_grp, 'noTouch')
+
+    return {'con_grp': con_grp, 'util_grp': util_grp, "jnt_grp": jnt_grp}

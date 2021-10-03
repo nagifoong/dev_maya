@@ -1,0 +1,690 @@
+import pymel.core as pm
+
+from ..utils import coloring
+from ..lib import decorators
+from ..utils import channels
+
+reload(channels)
+from ..utilities.shapeCreator import main as shape_gen
+
+reload(shape_gen)
+
+side_data = dict(left='l', right='r', mid='m')
+color_data = {side_data['left']: 6, side_data['right']: 13, side_data['mid']: 17}
+
+
+@decorators.undo_chunk
+def create_fkikSplineRig(side, name, crv, no_of_joints, no_of_con, stretchy, curl):
+    # creating joints and updating the orientation
+    def_joints = joint_along_crv(crv, no_of_joints, hi=True)
+    pm.joint(def_joints[0], e=True, oj='yxz', secondaryAxisOrient='xdown', ch=True, zso=True)
+    pm.joint(def_joints[-1], e=True, oj='none', ch=False, zso=True)
+    crv_joints = joint_along_crv(crv, no_of_con, hi=True)
+    pm.joint(crv_joints[0], e=True, oj='yxz', secondaryAxisOrient='xdown', ch=True, zso=True)
+    pm.joint(crv_joints[-1], e=True, oj='none', ch=False, zso=True)
+    for jnt in crv_joints:
+        jnt.setParent(w=True)
+
+    # joint naming
+    for i, jnt in enumerate(def_joints):
+        new_name = node_name(cmpnt=name, side=side, part=str(i + 1), type='', node='JNT')
+        jnt.rename(new_name)
+
+    for i, jnt in enumerate(crv_joints):
+        new_name = node_name(cmpnt=name, side=side, part=str(i + 1), type='crv', node='Driver')
+        jnt.rename(new_name)
+
+    # rebuilding ik spline curve as per the number of con
+    crv_name = node_name(cmpnt=name, side=side, part='', type='IK', node='CRV')
+    ik_curve = \
+    pm.rebuildCurve(crv, n=crv_name, ch=False, rpo=False, rt=0, end=0, kr=0, kcp=0, kep=True, kt=False, s=no_of_con - 1,
+                    d=3, tol=0.01)[0]
+
+    # creating spline ik and binding to curve to the bind joints
+    ik_handle = pm.ikHandle(sol='ikSplineSolver', curve=ik_curve, sj=def_joints[0], ee=def_joints[-1], ccv=False)
+    pm.skinCluster(crv_joints, ik_curve, dr=10, mi=1, tsb=True)
+    ik_handle[0].rename(node_name(cmpnt=name, side=side, part='', type='', node='IKH'))
+    ik_handle[1].rename(node_name(cmpnt=name, side=side, part='', type='', node='effector'))
+
+    # creating ik controllers
+    ik_con_list = []
+    ik_grp_list = []
+    fk_con_list = []
+    fk_grp_list = []
+    previous_con = ''
+    for i, jnt in enumerate(crv_joints):
+        con_name = node_name(cmpnt=name, side=side, part=str(i + 1), type='ik', node='CON')
+        ik_con = shape_gen.create_control("cube", name=con_name, offsetCon=0)
+        ik_con_grp = pm.group(ik_con, n='{}_NUL'.format(ik_con))
+        pm.delete(pm.parentConstraint(jnt, ik_con_grp))
+        pm.parentConstraint(ik_con, jnt)
+        pm.scaleConstraint(ik_con, jnt)
+        coloring.setOverrideColor(ik_con, color_data[side])
+        channels.hideChannels(ik_con, [0, []], [0, []], [1, [1, 1, 1]], 1)
+        ik_con_list.append(ik_con)
+        ik_grp_list.append(ik_con_grp)
+
+        con_name = node_name(cmpnt=name, side=side, part=str(i + 1), type='fk', node='CON')
+        fk_con = shape_gen.create_control("circle", name=con_name, offsetCon=0)
+        fk_con_grp = pm.group(fk_con, n='{}_NUL'.format(fk_con))
+        pm.delete(pm.parentConstraint(jnt, fk_con_grp))
+        pm.parentConstraint(fk_con, ik_con_grp)
+        pm.scaleConstraint(fk_con, ik_con_grp)
+        coloring.setOverrideColor(fk_con, color_data[side])
+        channels.hideChannels(fk_con, [0, []], [0, []], [1, [1, 1, 1]], 1)
+        fk_con_list.append(fk_con)
+        fk_grp_list.append(fk_con_grp)
+
+        if previous_con:
+            fk_con_grp.setParent(previous_con)
+        previous_con = fk_con
+    # grouping
+    fk_grp = node_name(cmpnt=name, side=side, part='', type='fk', node='GRP')
+    fk_grp = pm.group(fk_grp_list[0], n=fk_grp)
+    ik_grp = node_name(cmpnt=name, side=side, part='', type='ik', node='GRP')
+    ik_grp = pm.group(ik_grp_list, n=ik_grp)
+    con_grp = node_name(cmpnt=name, side=side, part='', type='CON', node='GRP')
+    con_grp = pm.group(fk_grp, ik_grp, n=con_grp)
+
+    rig_grp = node_name(cmpnt=name, side=side, part='', type='rig', node='GRP')
+    rig_grp = pm.group(def_joints[0], crv_joints, ik_handle[0], ik_curve, n=rig_grp)
+
+    pm.parentConstraint(fk_con_list[0], rig_grp, mo=True)
+    pm.scaleConstraint(fk_con_list[0], rig_grp, mo=True)
+    ik_curve.inheritsTransform.set(0)
+
+    # connecting twist
+    ik_handle[0].dTwistControlEnable.set(1)
+    ik_handle[0].dWorldUpType.set(4)
+    ik_handle[0].dForwardAxis.set(2)
+    ik_handle[0].dWorldUpAxis.set(3)
+    ik_handle[0].dWorldUpVectorY.set(0)
+    ik_handle[0].dWorldUpVectorZ.set(1)
+    ik_handle[0].dWorldUpVectorEndY.set(0)
+    ik_handle[0].dWorldUpVectorEndZ.set(1)
+    pm.connectAttr(ik_con_list[0] + ".worldMatrix[0]", ik_handle[0] + ".dWorldUpMatrix")
+    pm.connectAttr(ik_con_list[-1] + ".worldMatrix[0]", ik_handle[0] + ".dWorldUpMatrixEnd")
+
+    # adding stretchy
+    if stretchy:
+        spline_stretchy(con=fk_con_list[0], crv=ik_curve, global_scale=rig_grp, volume=1, forward_axis='y')
+    if curl:
+        fk_curl(con_list=fk_con_list, axis='rx', driver=fk_con_list[0], attribute='curl', angle=60)
+
+    return fk_con_list
+
+
+@decorators.undo_chunk
+def joint_along_crv(crv='curve1', no_of_joints=10, hi=False):
+    loc = pm.spaceLocator()
+    pm.select(crv, loc)
+    m_path = pm.pathAnimation(fm=1, f=1, fa='x', ua='y', wut="vector", wu=[0, 1, 0], iu=0, b=0, stu=1, etu=100)
+    m_path = pm.PyNode(m_path)
+    pm.cycleCheck(e=False)
+    pm.cutKey(m_path)
+    pm.select(cl=True)
+    jnt_len = 1.0 / (no_of_joints - 1)
+    k = 0.0
+    new_joints = []
+
+    root_jnt = ''
+    for i in range(no_of_joints):
+        pm.select(cl=True)
+        m_path.uValue.set(k)
+
+        jnt_pos = loc.t.get()
+        jnt = pm.joint(p=jnt_pos)
+        new_joints.append(jnt)
+
+        if hi is True:
+            if root_jnt:
+                jnt.setParent(root_jnt)
+        root_jnt = jnt
+
+        k = k + jnt_len
+        if k > 1:
+            k = 1
+
+    pm.delete(m_path)
+    pm.delete(loc)
+    return new_joints
+
+
+def node_name(cmpnt='Arm', side='R', part='Shoulder', type='FK', node='CON'):
+    element_list = []
+    for element in [side, cmpnt, part, type, node]:
+        if element:
+            element_list.append(element)
+    return '_'.join(element_list)
+
+
+def spline_stretchy(con='', crv='', global_scale='', volume=1, forward_axis='y', jntList = []):
+    # crv = "m_tongue_IK_CRV";
+    # global_scale = "m_tongue_1_fk_CON"
+    # volume = 0
+    # forward_axis = 'y'
+    scale_axis = 'xyz'.replace(forward_axis, '')
+    forward_axis = 't{}'.format(forward_axis)
+
+    crv = pm.PyNode(crv)
+    global_scale = pm.PyNode(global_scale)
+
+    node = pm.arclen(crv, ch=1)
+    shape = crv.getShapes()[0]
+    ik_handle = shape.listConnections(type='ikHandle')[0]
+    if not jntList:
+        joint_list = ik_handle.getJointList()
+    else:
+        joint_list = jntList
+    start_joint = ik_handle.getStartJoint()
+    effector = ik_handle.getEffector()
+    end_joint = effector.listConnections(type='joint')[0]
+    joint_list.append(end_joint)
+
+    # pm.addAttr(node, ln='normalizedScale', at='double')
+    length = node.arcLength.get()
+
+    md1 = pm.createNode('multiplyDivide', n='{}_normalize_MD'.format(crv))
+    node.arcLength >> md1.input1Y
+    md1.input2Y.set(length)
+    md1.operation.set(2)
+    # md1.outputY >> node.normalizedScale
+
+    md_scalefix = pm.createNode('multiplyDivide', n='{}_scalefix_MD'.format(crv))
+    md_scalefix.operation.set(2)
+    md1.outputY >> md_scalefix.input1Y
+    global_scale.sy >> md_scalefix.input2Y
+
+    blend_switch = pm.createNode('blendColors', n='{}_switch_BC'.format(crv))
+
+    con.addAttr('stretch', min=0, max=1, dv=1, k=1)
+    con.stretch >> blend_switch.blender
+    md_scalefix.outputY >> blend_switch.color1R
+    blend_switch.color2R.set(1)
+
+    for i, jnt in enumerate(joint_list):
+        md = pm.createNode('multiplyDivide', n='{}_{}_MD'.format(jnt, forward_axis))
+        blend_switch.outputR >> md.input1Y
+        length = jnt.attr(forward_axis).get()
+        md.input2Y.set(length)
+        md.outputY >> jnt.attr(forward_axis)
+
+    # volume
+    if volume:
+        pm.addAttr(crv, ln='scale_power', at='double')
+        crv.scale_power.setKey(t=1, v=1)
+        crv.scale_power.setKey(t=len(joint_list), v=1)
+        pm.keyTangent(crv, at='scale_power', wt=1)
+        pm.keyTangent(crv, at='scale_power', weightLock=False)
+        pm.keyTangent(crv.scale_power, e=True, a=True, t=1, outAngle=45)
+        pm.keyTangent(crv.scale_power, e=True, a=True, t=len(joint_list), inAngle=-45)
+
+        sqrt_md = pm.createNode('multiplyDivide', n='{}_sqrt_MD'.format(jnt))
+        blend_switch.color1R >> sqrt_md.input1Y
+        sqrt_md.operation.set(3)
+        sqrt_md.input2Y.set(.5)
+
+        invs_md = pm.createNode('multiplyDivide', n='{}_inversescale_MD'.format(jnt))
+        sqrt_md.outputY >> invs_md.input2Y
+        invs_md.operation.set(2)
+        invs_md.input1Y.set(1)
+
+        for i, jnt in enumerate(joint_list):
+            pm.addAttr(jnt, ln='scale_power', at='double')
+            jnt.scale_power.set(k=True)
+            frame_cache = pm.createNode('frameCache', n='{}_FC'.format(jnt))
+            frame_cache.vt.set(i + 1)
+            frame_cache.v >> jnt.scale_power
+            crv.scale_power >> frame_cache.stream
+
+            scale_md = pm.createNode('multiplyDivide', n='{}_scale{}_MD'.format(jnt, scale_axis))
+            invs_md.outputY >> scale_md.input1Y
+            jnt.scale_power >> scale_md.input2Y
+            scale_md.operation.set(3)
+            for axis in scale_axis:
+                axis = 's{}'.format(axis)
+                scale_md.outputY >> jnt.attr(axis)
+
+        # squash switch
+        con.addAttr('volumePreservation', min=0, max=1, k=1)
+        # pm.addAttr(global_scale, ln='squash', at='bool')
+        # global_scale.squash.set(k=True)
+
+        blend_color = pm.createNode('blendColors', n='{}_sqsh_BC'.format(jnt))
+
+        blend_switch.color1R >> blend_color.color1R
+        blend_color.color2R.set(1)
+        con.volumePreservation >> blend_color.blender
+        # global_scale.squash >> blend_color.blender
+        blend_color.outputR >> sqrt_md.input1Y
+
+        # stretch switch need to add
+
+
+def fk_curl(con_list=[], axis='rx', driver='m_tongue_1_fk_CON', attribute='curl', angle=45):
+    driver = pm.PyNode(driver)
+    pm.addAttr(driver, ln=attribute, at='double', min=0, max=1, dv=0, k=1)
+    pm.addAttr(driver, ln="{}Max".format(attribute), at='double', dv=angle, k=1)
+
+    number_of_con = len(con_list)
+    increment = float(1.0 / number_of_con)
+    frame = 0
+    previous_frame = 0
+    for con in reversed(con_list):
+        con = pm.PyNode(con)
+        parent_grp = pm.group(em=True, n='{}_{}_SDK'.format(attribute, con), p=con.getParent())
+        pm.delete(pm.parentConstraint(con, parent_grp, mo=False))
+        con.setParent(parent_grp)
+
+        remap_value = pm.createNode('remapValue', n='{}_RMV'.format(con))
+        val = 1 if frame * 1.8 >= 1 else frame * 1.8
+        # val = frame*1.8
+        remap_value.inputMin.set(previous_frame)
+        remap_value.inputMax.set(val)
+        remap_value.outputMin.set(0)
+        # remap_value.outputMax.set(angle)
+        driver.attr("{}Max".format(attribute)) >> remap_value.outputMax
+        driver.attr(attribute) >> remap_value.inputValue
+        remap_value.outValue >> parent_grp.attr(axis)
+
+        previous_frame = frame
+        frame = frame + increment
+
+
+def dynChainCleanUp(obj,prefix = ""):
+    '''
+    Clean up chain system naming and return dictionary with all nodes
+    :param obj: HairControls group
+    :return: dictionary
+    '''
+    # obj = pm.selected()[0]
+    dynDict = {}
+    for ob in obj.getChildren(ad=1):
+        if ob.type() not in ['transform', 'ikHandle', 'pointConstraint']:
+            continue
+        # prefix = obj.split("JNT")[-2].replace("_","")#obj.replace("_JNT_HairControls", "")
+
+        if str(ob.name()[-1]).isdigit():
+            newName = "{}_{}".format(prefix, ob.name()[:-1])
+        else:
+            newName = "{}_{}".format(prefix, ob)
+        ob.rename(newName)
+        if ob.type() == 'transform':
+            if ob.getShape().type() == 'hairSystem':
+                expNode = ob.currentTime.inputs(scn=1)[0]
+                expNode.rename("{}_{}".format(prefix, expNode))
+                dynDict[expNode.type()] = expNode
+            if ob.getShape().type() == 'nurbsCurve':
+                sclNode = ob.create.inputs()[0]
+                if sclNode.type() == "skinCluster":
+                    sclNode.rename("{}_SCL".format(ob))
+                    dynDict[sclNode.type()] = sclNode
+                else:
+                    ob.rename(ob.replace("curve", "outputCurve"))
+                    dynDict['outputCurve'] = ob
+                    continue
+            dynDict[ob.getShape().type()] = ob
+        else:
+            dynDict[ob.type()] = ob
+    obj.rename("{}_HairControls_GRP".format(prefix))
+    dynDict['systemGRP'] = obj
+    return dynDict
+
+
+def dynChain(jnts=[], conScale=1, conCount=5,inBetween = 5,forward = "x"):
+    '''
+    create dynamic chain with fk and ik controllers
+    :param jnts: list of first joint
+    :param conScale: size of controllers
+    :param conCount: amount of controllers. (for FK. IK always double the amount of FK)
+    :return:
+    '''
+    import pymel.all as pm
+    import maya.mel as mel
+
+    '''Create group to store utility groups'''
+    if not pm.ls('noTouch'):
+        noTouchGRP = pm.group(name = "noTouch",em=1)
+    else:
+        noTouchGRP = pm.ls('noTouch')
+
+    objs = jnts
+    for obj in objs:
+        '''parent object. If it does not exist, create a group'''
+        root = obj.getParent()
+        if not root:
+            root = pm.group(name = "{}_GRP".format(obj),em=1)
+            root.addChild(obj)
+
+        '''get all children joint'''
+        jntList = [obj]
+        jntList.extend(obj.getChildren(ad=1)[::-1])
+        lastJNT = jntList[-1]
+        resultDict =twistBySection(jntList = jntList,inBetween=inBetween,forward=forward)
+
+        '''run mel command to generate dynamice chain'''
+        pm.select(resultDict['baseJnts'][0], resultDict['baseJnts'][-1])
+        mel.eval("source \"makeIkHair.mel\";makeIkHair;")
+
+        '''find joints which control the dynamic chain'''
+        ikJnts = [pm.PyNode("ANIM_{}".format(obj))]
+        ikJnts.extend(ikJnts[0].getChildren(ad=1,type = "joint")[::-1])
+        ikJnts = [ikj for ikj in ikJnts if "base" in ikj.name() else pm.delete(ikj)]
+        ikJnts[0].chainIteration.set(5)
+
+        '''Create group for it and separate it out from original hierarchy'''
+        ikJntGrp = pm.group(name = "{}_GRP".format(ikJnts[0]),em=1)
+        pm.parentConstraint(root,ikJntGrp)
+        pm.scaleConstraint(root,ikJntGrp)
+        ikJntGrp.addChild(ikJnts[0])
+
+        '''Find group which store all hairSystem nodes'''
+        sysName = ikJnts[0].split("_")[1:-1]
+        if sysName[0] in 'lrm':
+            side = sysName[0]
+            nSysName = "_".join(sysName[1:])
+        else:
+            side = 'm'
+            nSysName = "_".join(sysName)
+        for ikj in ikJnts:
+            #rename it
+            ikj.rename("{}_{}IK_JNT".format(side,"_".join(ikj.split("_")[1:-1])))
+
+        ## prefix for the system
+        pref = "{}_{}".format(side,nSysName)
+
+        ### groups and variables
+        utilMainGrp = pm.group(name="{}_util_GRP".format(pref), em=1, p=noTouchGRP)
+        nullMain = pm.group(name = "{}_nullMain_GRP".format(pref),em=1,p = utilMainGrp)
+        nullRot = pm.group(name = "{}_nullRot".format(pref),em=1,p = nullMain)
+        nullScale = pm.group(name="{}_nullScale".format(pref), em=1, p=nullMain)
+        fkUtil = pm.group(name = "{}_fk_util_GRP".format(pref),em=1,p = utilMainGrp)
+        ikUtil = pm.group(name="{}_ik_util_GRP".format(pref), em=1, p=utilMainGrp)
+        ikCons = []
+        fkCons = []
+        conMainGRP = pm.group(name="{}_CON_main_GRP".format(pref), em=1)
+        fkConMainGRP = pm.group(name="{}_FK_CON_main_GRP".format(pref), em=1, p=conMainGRP)
+        ikConMainGRP = pm.group(name="{}_IK_CON_main_GRP".format(pref), em=1, p=conMainGRP)
+
+        utilMainGrp.v.set(0,l=1)
+
+        '''identify hairSystem nodes'''
+        dynSysGRP = pm.PyNode("{}_HairControls".format(obj.fullPath()[1:].replace("|","_")))
+        dynDict = dynChainCleanUp(dynSysGRP,prefix = pref)
+
+        # '''rebuild curve to match controller count'''
+        # drvCrv = pm.rebuildCurve(dynDict['outputCurve'],name ="{}_drv_ikCRV".format(pref),ch=0,rpo=0,rt=0,
+        #                          end=1,kr=0,kcp=0,kep=0 ,kt=1, s=(conCount-1)*2,d=3,tol=.01)[0]
+        #
+        # ## remove [1] and [-2] cv
+        # pm.delete(drvCrv.cv[drvCrv.degree()+drvCrv.spans.get()-2])
+        # pm.delete(drvCrv.cv[1])
+        #
+        # totalCV = drvCrv.degree()+drvCrv.spans.get()
+        #
+        # '''create fk joints based on curve tangent'''
+        # fkJnts = joint_along_crv(crv=drvCrv, no_of_joints=conCount, hi=True)
+        # pm.joint(fkJnts[0],e=1,oj='yxz',secondaryAxisOrient = 'xup',ch=1,zso=1)
+        # fkJnts[-1].jointOrient.set([0,0,0])
+
+        '''create main controller'''
+        mainCon = shape_gen.create_control("circleFourArrow", name="{}_main_CON".format(pref), offsetCon=0)
+        mainCon.s.set([conScale , conScale , conScale ])
+        pm.makeIdentity(mainCon, a=1, s=1)
+        mainConGRP = pm.group(name="{}_main_CON_GRP".format(pref),p = conMainGRP)
+        pm.delete(pm.parentConstraint(fkJnts[0], mainConGRP))
+
+        '''attributes '''
+        ### ik visibility
+        mainCon.addAttr('VIZ', at='double', k=1)
+        mainCon.VIZ.set(l=1)
+        mainCon.addAttr("ikConViz",at= 'double',min = 0, max =1, dv=0,k=1)
+        mainCon.ikConViz.connect(ikConMainGRP.v)
+
+        ### duplicate all attributes from controller joint to mainCon
+        attrs = ikJnts[0].listAttr(ud=1)
+        for at in attrs:
+            atType = at.type()
+            if atType == "bool":
+                mainCon.addAttr(at.attrName(), at=at.type(), k=at.isKeyable())
+            if atType == 'double' or atType == 'long':
+                val = at.getRange()
+                mainCon.addAttr(at.attrName(), at=at.type(), k=at.isKeyable())
+                if val[0]:
+                    mainCon.attr(at.attrName()).setMin(val[0])
+                if val[1]:
+                    mainCon.attr(at.attrName()).setMax(val[1])
+            if atType == 'enum':
+                mainCon.addAttr(at.attrName(), at=at.type(), en=at.getEnums(), k=at.isKeyable())
+
+            if at.isLocked():
+                mainCon.attr(at.attrName()).set(l=1)
+            else:
+                mainCon.attr(at.attrName()).set(at.get())
+                mainCon.attr(at.attrName()).connect(at)
+
+
+        '''constraint groups for nullify rotation and scale'''
+        pm.orientConstraint(mainCon,nullRot,mo=1)
+        pm.scaleConstraint(mainCon,nullScale,mo=1)
+
+        '''Curve cv count which match fk con count'''
+        fkCrv = pm.curve(name = "{}_fkCRV".format(pref),p = [pm.xform(q,q=1,ws=1,t=1) for q in jntList],d=3)
+        fkUtil.addChild(fkCrv)
+
+        '''create fk controllers and locators'''
+        ## controllers have ability to unfollow from its parent transformation
+        for ind,jnt in enumerate(fkJnts):
+            fkCon = shape_gen.create_control("circle", name="{}_FK{}_CON".format(pref, ind+1), offsetCon=0)
+            fkCon.addAttr('space',at= 'enum', en = 'fk:{}'.format(mainCon),k=1)
+            fkCon.s.set([conScale / 2.0, conScale / 2.0, conScale / 2.0])
+            pm.makeIdentity(fkCon, a=1, s=1)
+            fkConGrp = pm.group(name="{}_GRP".format(fkCon), p=fkConMainGRP)
+            coloring.setOverrideColor(fkCon, color_data[side])
+
+            if fkCons:
+                pm.parent(fkConGrp,fkCons[-1])
+
+            fkCons.append(fkCon)
+            pm.delete(pm.parentConstraint(jnt, fkConGrp))
+            const = pm.parentConstraint(mainCon,fkConGrp, mo=1)
+            fkCon.space.connect(const.attr("{}W0".format(mainCon)))
+
+            loc = pm.spaceLocator(name="{}_cv{}_loc".format(fkCrv, ind))
+            locGRP = pm.group(name="{}_GRP".format(loc), p=fkUtil)
+            pm.parentConstraint(fkCon,locGRP)
+            loc.worldPosition.connect(fkCrv.cv[ind])
+
+            channels.display_channels(fkCon, visibility=0, scales= [0, 0, 0])
+            channels.lock_channels(fkCon, visibility=1, scales=[1, 1, 1])
+
+        '''create ik controllers'''
+        ikLocs = []
+
+        ## nodes to find position on curve
+        nearNode = pm.createNode("nearestPointOnCurve")
+        pxyLoc = pm.spaceLocator()
+        fkCrv.worldSpace.connect(nearNode.inputCurve)
+        pxyLoc.worldPosition.connect(nearNode.inPosition)
+
+        for ind in range(totalCV):
+            ## locator that control cv on result curve
+            resLoc = pm.spaceLocator(name="{}_cv{}_loc".format(drvCrv, ind))
+            locGRP = pm.group(name="{}_GRP".format(resLoc), p=ikUtil)
+            locGRP.t.set(pm.xform(drvCrv.cv[ind], q=1, ws=1, t=1))
+            resLoc.worldPosition.connect(drvCrv.cv[ind])
+
+            ## create controller
+            ikCon = shape_gen.create_control("sphere", name="{}_IK{}_CON".format(pref, ind + 1), offsetCon=0)
+            ikCon.s.set([conScale / 3.0, conScale / 3.0, conScale / 3.0])
+            pm.makeIdentity(ikCon, a=1, s=1)
+            ikCons.append(ikCon)
+            coloring.setOverrideColor(ikCon, 14)
+
+            ## create and attach locator to follow fk curve tangent
+            pm.delete(pm.parentConstraint(resLoc, pxyLoc))
+            fkCrvLoc = pm.spaceLocator(name="{}_cv{}_loc".format(fkCrv, ind))
+            fkCrvLoc.getShape().v.set(0,l=1)
+            fkCrvLoc.addChild(ikCon)
+
+            crvInfo = pm.createNode('pointOnCurveInfo', name="{}_cv{}_crvInfo".format(fkCrv, ind))
+            fkCrv.worldSpace.connect(crvInfo.inputCurve)
+            crvInfo.parameter.set(nearNode.parameter.get())
+            crvInfo.position.connect(fkCrvLoc.t)
+
+            ## nullify scale and rotation
+            nullRot.r.connect(fkCrvLoc.r)
+            nullScale.s.connect(fkCrvLoc.s)
+
+            ## clean up
+            ikConMainGRP.addChild(fkCrvLoc)
+            ikLocs.append(fkCrvLoc)
+            pm.parentConstraint(ikCon, locGRP)
+
+            channels.display_channels(ikCon, rotates=[0, 0, 0], visibility=0, scales=[0, 0, 0])
+            channels.lock_channels(ikCon, rotates=[1, 1, 1], visibility=1, scales=[1, 1, 1])
+
+        '''Create ikHandle for ANIM joint'''
+        ikHdl = pm.ikHandle(name = "{}_ikHDL".format(ikJnts[0]),sj=ikJnts[0],ee=ikJnts[-1],c=drvCrv,sol = 'ikSplineSolver', ccv = 0 , pcv = 0)[0]
+
+        ### squash and stretch
+        mainCon.addAttr('STRETCHY',at= 'double',k=1)
+        mainCon.STRETCHY.set(l=1)
+        spline_stretchy(con=mainCon, crv=drvCrv, global_scale=nullScale, volume=1, forward_axis='y')
+        spline_stretchy(con=ikJnts[0],jntList = jntList[1:], crv=drvCrv, global_scale=nullScale, volume=0, forward_axis='y')
+        #remove override by stretch calculation node
+        jntList[0].ty.inputs[0].disconnect(jntList[0].ty)
+
+        mainCon.stretch.connect(ikJnts[0].stretch)
+
+        '''Organize and clean up'''
+        pm.parent(ikHdl,drvCrv, ikUtil)
+        pm.parent(dynDict['systemGRP'],ikJntGrp,utilMainGrp)
+        pm.parent(fkConMainGRP,mainCon)
+        pm.delete(pxyLoc, nearNode, fkJnts, 'dynHairChain')
+
+        return
+
+def twistBySection (jntList = [],inBetween = 5,prefix = '' ,forward = 'x'):
+    '''Define variables'''
+    #inBetween = 5
+    #prefix = "whisker"
+    if not prefix:
+        prefix = jntList[0]
+    suffix = 1
+    padding = len(str(inBetween * len(jntList)))
+    #forward = "x"
+    pJnts = []
+    twstJnts = []
+
+    #make sure last joint always with 0 joint orientation
+    jntList[-1].jointOrient.set([0, 0, 0])
+
+
+    for ind, con in enumerate(jntList):
+        pm.select(cl=1)
+        #Duplicate main joints and create attribute to control twist
+        if "JNT" in con.name():
+            newName = con.replace("JNT", "twist0_JNT")
+        else:
+            newName = "{}_twist0_JNT".format(con.name())
+        pJnt = pm.duplicate(con, po=1, name="{}_twist0_JNT".format(con.replace("_JNT","")))[0]
+        pJnt.radius.set(pJnt.radius.get() * 2)
+        # atName = "{}Twist".format(con)
+        atName = 'twist'
+        pJnt.addAttr(atName, at='double', k=1)
+        pJnt.attr(atName).connect(pJnt.attr("r" + forward))
+
+        twstJnts.append(pJnt)
+        pJnts.append(pJnt)
+
+        #Skip first one
+        if ind == 0:
+            continue
+
+        # Find distance between joints by using its translate value
+        totalDist = pJnt.attr("t" + forward).get()
+        diff = totalDist / float(inBetween + 1)
+        val = diff
+
+        #Create joints between main joints
+        for n in range(inBetween):
+            current = val / float(totalDist)
+            jnt = pm.duplicate(con, po=1, name="{}_twist{}_JNT".format(jntList[ind - 1].replace("_JNT","") ,n + 1))[0]
+            pm.parent(jnt, jntList[ind - 1], r=1)
+            pm.select(cl=1)
+            twstJnts.append(jnt)
+
+            jnt.attr("t" + forward).set(val)
+
+            ## last joint skip creating in between joints
+            if n == inBetween - 1:
+                pJnts[ind].attr("r" + forward).connect(jnt.attr("r" + forward), f=1)
+                continue
+
+            ## nodes for calculate twist value between two joints
+            multA = pm.createNode('multiplyDivide', name='{}_twistA_MULT'.format(jnt))
+            pJnts[ind - 1].attr("r" + forward).connect(multA.input1X)
+            multA.input2X.set(1 - current)
+
+            multB = pm.createNode('multiplyDivide', name='{}_twistB_MULT'.format(jnt))
+            pJnt.attr("r" + forward).connect(multB.input1X)
+            multB.input2X.set(current)
+
+            plusNode = pm.createNode('plusMinusAverage', name='{}_twist_PLUS'.format(jnt))
+            multA.outputX.connect(plusNode.input1D[0])
+            multB.outputX.connect(plusNode.input1D[1])
+
+            plusNode.output1D.connect(jnt.attr("r" + forward))
+            val += diff
+
+    #Sort twist joints
+    twstJnts.sort()
+
+    #Create base joint chain for ik spline system
+    baseJnts = []
+    for jnt in twstJnts:
+        jnt.rename("{}_{}_JNT".format(prefix, str(suffix).zfill(padding)))
+        baseJnt = pm.duplicate(jnt, name=jnt.replace("JNT", "base_JNT"), po=1)[0]
+        baseJnt.drawStyle.set(2)
+        if baseJnts:
+            baseJnts[-1].addChild(baseJnt)
+            baseJnts[-1].addChild(twstJnts[(len(baseJnts) - 1)])
+        baseJnts.append(baseJnt)
+        suffix += 1
+
+    baseJnts[-1].addChild(twstJnts[(len(baseJnts) - 1)])
+
+    return {'twistMain': pJnts,
+            'jnts': twstJnts,
+            'baseJnts' : baseJnts}
+# def createCurveOnChain(jntList):
+#     pos = []
+#     knots = range(len(jntList))
+#     for jnt in jntList:
+#         pos.append(pm.xform(jnt, q=1, ws=1,t=1))
+#     crv = pm.curve(d=1,p= pos, k = knots)
+#     return crv
+#
+# def createHairSys(curve):
+#     hSys = pm.createNode('hairSystem', name = "{}_hairSystem".format(curve.name()))
+#     pm.PyNode('time1').outTime.connect(hSys.currentTime)
+#
+# def makeIkHair(jntList):
+#     conList = []
+#     if not jntList:
+#         print "Error: Please select joint(s)."
+#         return
+#     for jnt in jntList:
+#         jntChain = [jnt]
+#         jntChain.extend(jnt.getChildren(ad=1)[::-1])
+#         ## duplicate joint for controller chain
+#         dulJnt = pm.duplicate(jnt, name = jnt.replace('JNT',"CON"),rr =1 )[0]
+#         conList.append(dulJnt)
+#         for nwJnt in dulJnt.getChildren(ad=1):
+#             nwJnt.rename(nwJnt.replace('JNT',"CON"))
+#             conList.append(nwJnt)
+#
+#         ##make curve based on joint chain
+#         crv = createCurveOnChain(jntChain)
+

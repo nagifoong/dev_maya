@@ -1,0 +1,5 @@
+QListWidget::item:hover, QListWidget::item:selected
+{
+    border: 1px solid white;
+    color: white;
+}

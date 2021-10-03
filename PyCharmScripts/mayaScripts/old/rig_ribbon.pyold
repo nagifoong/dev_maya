@@ -1,0 +1,54 @@
+import pymel.all as pm
+from PyCharmScripts.tools.controllerShape import main as shape
+from PyCharmScripts.utils import common
+
+
+def create_ribbon(sel, in_between=1, name='ribbon'):
+    diff = 1.0 / (in_between + 1)
+    padding = len(str(in_between + 2))
+    jnts = []
+    crvs = []
+    for i in range(len(sel)-1):
+        pos_list = [pm.xform(q, q=1, ws=1, t=1) for q in [sel[i], sel[i+1]]]
+        pos_crv = pm.curve(p=pos_list, d=1)
+        val = 0
+        temp_list = []
+        for pnt in range(in_between + 2):
+            pm.select(cl=1)
+            prefix = "{}_{}".format(name, sel[i])
+            # get position for con
+            pos = pos_crv.getPointAtParam(val, space='world')
+            temp_list.append(pos)
+            val += diff
+
+            # create con
+            temp_name = common.create_name(side='', name=prefix, fn=str(pnt+1).zfill(padding), _type='ctrl')
+            con_struc = shape.create('squareSmooth', name=temp_name, groups=['nul'])
+            con_struc[0].rz.set(90)
+            pm.makeIdentity(con_struc[0], a=1)
+
+            # create joint
+            temp_name = common.create_name(side='', name=prefix, fn=str(pnt + 1).zfill(padding), _type='jnt')
+            jnt = pm.joint(name=temp_name)
+            jnts.append(jnts)
+            pm.parentConstraint(con_struc[-1], jnt)
+            pm.scaleConstraint(con_struc[-1], jnt)
+
+            # apply con transformation
+            con_struc[0].t.set(pos)
+            con_struc[0].r.set(sel[0].r.get())
+
+        # create curve
+        # temp_curve = pm.curve(p=temp_list, d=1, name='curveFrom{}'.format(i))
+        pm.rebuildCurve(pos_crv, ch=0, rpo=1, rt=0, end=1, kr=0, kcp=0, kep=1, kt=1, s=((in_between+1)*2)-1,d=3)
+        crvs.append(pos_crv)
+
+    # combine all curve
+    crv_a = pm.attachCurve(crvs, ch=0, rpo=0, kmk=1, m=0, bb=.5, bki=0, p=.1)[0]
+    crv_b = pm.duplicate(crv_a, rr=1)[0]
+
+    crv_a.tz.set(-.1)
+    crv_b.tz.set(.1)
+    temp_name = common.create_name(side='', name=name, fn='result', _type='surface')
+
+    surf = pm.loft([crv_a, crv_b], u=1, ch=0, ar=1, d=1, ss=1, rn=0, po=0, name=temp_name)

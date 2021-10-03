@@ -1,0 +1,839 @@
+/*>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>	
+//ATS Tool Name (c) 2019
+	AtsClothSystem
+
+//Version
+	1.0
+	For Maya 2019
+    
+//Author
+	Atsushi Yokoyama
+	
+//History 
+	V 1.0 Mar.31.2020
+		
+
+
+//Run Command
+	AtsClothSystem;
+
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>*/
+
+//■■■■■　実行コマンド（最終的な名前を入力させる）　■■■■■
+global proc AtsClothSystem()
+{
+	//最終的な物理システム名を入力するダイアログ
+	string $text;
+	string $result = `promptDialog
+    -t "SystemName"
+    -m "Enter SystemName:"
+	-ma "left"
+    -b "OK" -b "Cancel"
+    -db "OK" -cb "Cancel"
+    -ds "Cancel"`;
+	
+	global string $AtsCDSName;
+	
+	if ($result == "OK")
+	{
+		$sel=`ls -sl`;
+		$sel=`ls -sl`;
+		if(size($sel)==0)
+		{
+			print "no select Items!!";
+		}
+		else
+		{
+			$AtsCDSName = `promptDialog -q -tx`;
+			SkirtSPIK;
+			SkirtnHairSystem;
+			SkirtnCurveCtrl;
+		}
+	}
+}
+
+
+//■■■■■　コントロール階層の作成　■■■■■
+global proc SkirtnCurveCtrl()
+{
+	//変数宣言
+	global string $AtsCDSName;
+	
+	string $spikc[],$iptc[],$optc[];
+	string $msys=($AtsCDSName+"_PhisicsG");
+	string $ipc=($AtsCDSName+"IptCurves");
+	string $opc=($AtsCDSName+"OptCurves");
+	string $spc=($AtsCDSName+"SPIKcurves");
+	
+	string $mroot=($AtsCDSName+"_PhisicsCtrlG");
+
+	//OutputをSPIKにつなげる
+	$optc=`listRelatives -c $opc`;
+	$spikc=`listRelatives -c $spc`;
+	$optcnum=size($optc);
+	
+	for($i=0;  $i<$optcnum; $i++)
+	{
+		$ops=`listRelatives -s $optc[$i]`;
+		$sps=`listRelatives -s $spikc[$i]`;
+		connectAttr -f ($ops[0]+".worldSpace[0]") ($sps[0]+".create");
+	}
+	
+	
+	//Curveコントロールを作成
+	$iptc =`listRelatives -c $ipc`;
+
+	
+	for ($ipcv in $iptc)
+	{
+		$ipcvshape = `listRelatives $ipcv`;
+		$spans =`getAttr ($ipcvshape[0]+".spans")`;
+		$degree =`getAttr ($ipcvshape[0]+".degree")`;
+		$cvsize=$spans+$degree;
+		$locGname=($ipcv+"_locG");
+		$ctrlGname=$ipcv+"_PhisicsCtrl";
+		$shortname=`substitute "_inputcurve" $ipcv ""`;
+		createNode "transform" -n $locGname;
+		spaceLocator -p 0 0 0 -n $ctrlGname;
+		parent $locGname $ctrlGname;
+		
+		$rootpos=`pointPosition -w ($ipcv+".cv[0]")`;
+		setAttr ($ctrlGname+".tx") $rootpos[0];
+		setAttr ($ctrlGname+".ty") $rootpos[1];
+		setAttr ($ctrlGname+".tz") $rootpos[2];
+		
+		parent $ctrlGname $mroot;
+		
+		
+		//境界角度アトリビュート追加
+		addAttr -ln "valueX"  -at double  -min 0.001 -max 360 -dv 120 $ctrlGname;
+		addAttr -ln "valueY"  -at double  -min 0.001 -max 360 -dv 120 $ctrlGname;
+		addAttr -ln "valueZ"  -at double  -min 0.001 -max 360 -dv 120 $ctrlGname;
+		
+		setAttr -e-keyable true ($ctrlGname+".valueX");
+		setAttr -e-keyable true ($ctrlGname+".valueY");
+		setAttr -e-keyable true ($ctrlGname+".valueZ");
+		
+
+		//RL判定
+		$rh=`ls "root_head"`;
+		if(size($rh)==0)
+		{
+			$rl={"rf*","rs*","rb*","lf*","ls*","lb*"};
+			for($d in $rl)
+			{
+				$rljudge=`gmatch $ctrlGname $d`;
+			
+				if($rljudge==1)
+				{
+					$lrs=startString($d, 1);
+					$lrul=($lrs+"_upleg");
+					orientConstraint -o 0 0 0 -w 1 -n "dummy_oc" $lrul $ctrlGname;
+					delete "dummy_oc";
+					
+					
+					//●●●●●●●●●●ノードエディット●●●●●●●●●●
+					$md="multiplyDivide";
+					$md1=($md+"_"+$shortname);
+					$md2=($md+"_"+$locGname);
+					$mdp01=($md1+"_"+"p01");
+					$mdp02=($md1+"_"+"p02");
+					$clamp=("clamp_"+$md1);
+					
+					shadingNode -asUtility $md -n $md1;
+					shadingNode -asUtility $md -n $md2;
+					shadingNode -asUtility $md -n $mdp01;
+					shadingNode -asUtility $md -n $mdp02;
+					shadingNode -asUtility clamp -n $clamp;
+					
+					setAttr ($md1+".operation") 2;
+					setAttr ($mdp01+".operation") 3;
+					setAttr ($mdp02+".operation") 3;
+					
+					setAttr ($clamp+".minR") -1;
+					setAttr ($clamp+".minG") -1;
+					setAttr ($clamp+".minB") -1;
+					setAttr ($clamp+".maxR") 1;
+					setAttr ($clamp+".maxG") 1;
+					setAttr ($clamp+".maxB") 1;
+					
+					setAttr ($mdp01+".input2X") 2;
+					setAttr ($mdp01+".input2Y") 2;
+					setAttr ($mdp01+".input2Z") 2;
+					
+					setAttr ($mdp02+".input2X") 0.5;
+					setAttr ($mdp02+".input2Y") 0.5;
+					setAttr ($mdp02+".input2Z") 0.5;
+
+
+					//●●●●●●●●●●ノード接続●●●●●●●●●●
+					connectAttr -f ($lrul+".rotate") ($md1+".input1");
+					connectAttr -f ($lrul+".rotate") ($md2+".input1");
+					
+					connectAttr -f ($ctrlGname+".valueX") ($md1+".input2X");
+					connectAttr -f ($ctrlGname+".valueY") ($md1+".input2Y");
+					connectAttr -f ($ctrlGname+".valueZ") ($md1+".input2Z");
+					
+					connectAttr -f ($md1+".output") ($clamp+".input");
+					connectAttr -f ($clamp+".output") ($mdp01+".input1");
+					connectAttr -f ($mdp01+".output") ($mdp02+".input1");
+					connectAttr -f ($mdp02+".output") ($md2+".input2");
+					
+					connectAttr -f ($md2+".output") ($locGname+".rotate");
+					
+				}
+			}
+		}
+		
+		
+		for ($i=0;  $i<$cvsize; $i++)
+		{
+			$number=$i;
+			$locname=($ipcv+"_ctrl"+$number);
+			$nullname=($ipcv+"_null"+$number);
+			spaceLocator -n $locname;
+			createNode "transform" -n $nullname;
+			shadingNode -asUtility decomposeMatrix -n ("dcMatrix_"+$ipcv+$number);
+			
+			connectAttr -f ($ipcvshape[0]+".controlPoints["+$i+"]") ($locname+".translate");
+			disconnectAttr ($ipcvshape[0]+".controlPoints["+$i+"]") ($locname+".translate");
+			
+			connectAttr -f ($ipcvshape[0]+".controlPoints["+$i+"]") ($nullname+".translate");
+			disconnectAttr ($ipcvshape[0]+".controlPoints["+$i+"]") ($nullname+".translate");
+
+			connectAttr -f ($locname+".worldMatrix[0]") ("dcMatrix_"+$ipcv+$number+".inputMatrix");
+			connectAttr -f ("dcMatrix_"+$ipcv+$number+".outputTranslate") ($ipcvshape[0]+".controlPoints["+$i+"]");
+			parent $locname $nullname;
+			parent $nullname $locGname;
+			
+			if($i==0)
+			{
+				setAttr ($ipcv+"_null"+$number+".v") 0;
+			}
+			
+			setAttr -l 1 -k 0 -cb 0 ($locname+".rx");
+			setAttr -l 1 -k 0 -cb 0 ($locname+".ry");
+			setAttr -l 1 -k 0 -cb 0 ($locname+".rz");
+			setAttr -l 1 -k 0 -cb 0 ($locname+".sx");
+			setAttr -l 1 -k 0 -cb 0 ($locname+".sy");
+			setAttr -l 1 -k 0 -cb 0 ($locname+".sz");
+			
+			$values=`listAttr -k ($ipcv+"_null"+$number)`;
+			for ($v in $values)
+			{	
+				setAttr -l 1 -k 0 -cb 0 ($ipcv+"_null"+$number+"."+$v);
+			}
+		}
+		$values=`listAttr -k $locGname`;
+		string $v;
+		for ($v in $values)
+		{
+			$rotcheck=`gmatch $v "rotate*"`;
+			if($rotcheck != 1)
+			{
+				setAttr -l 1 -k 0 -cb 0 ($locGname+"."+$v);
+			}
+		}
+		
+		$values=`listAttr -k $ctrlGname`;		
+		for ($v in $values)
+		{
+			$valuecheck=`gmatch $v "value*"`;
+			if($valuecheck != 1)
+			{
+				setAttr -l 1 -k 0 -cb 0 ($ctrlGname+"."+$v);
+			}
+		}
+	}
+}
+
+//■■■■■　nhairを作成　■■■■■
+global proc SkirtnHairSystem()
+{
+	//変数宣言
+	global string $AtsCDSName;
+	
+	string $spikc[],$iptc[],$optc[];
+	string $msys=($AtsCDSName+"_PhisicsG");
+	string $ipc=($AtsCDSName+"IptCurves");
+	string $opc=($AtsCDSName+"OptCurves");
+	string $spc=($AtsCDSName+"SPIKcurves");
+	
+	//SPIKカーブを複製してインプットカーブに名前変更
+	$spikc=`listRelatives $spc`;
+	
+	for($c in $spikc)
+	{	
+		$iptcname=`substitute "SPIKJ" $c "input"`;
+		duplicate -n $iptcname -rr -rc $c;
+		parent $iptcname $msys;
+	}
+	
+	//HairSystem作成とリネーム整理
+	select ($msys+"|*_inputcurve");
+	source DynCreateHairMenu;
+	assignNewHairSystem;
+	
+	$iptc=`ls -sl`;
+	$optc=`listRelatives -c "hair*OutputCurves"`;
+	$iptcnum=size($iptc);
+	
+	for($i=0;  $i<$iptcnum; $i++)
+	{
+		$folname=`substitute "inputcurve" $iptc[$i] "follicle"`;
+		$fol=`listRelatives -p $iptc[$i]`;
+		rename $fol[0] $folname;
+		parent $iptc[$i] ($msys+"|"+$ipc);
+		
+		
+		parent $optc[$i] ($msys+"|"+$opc);
+		$optcname=`substitute "inputcurve" $iptc[$i] "outputcurve"`;
+		rename $optc[$i] $optcname;
+	}
+	
+	$nucl=`ls "*nucleus1"`;
+	$nuclnum=size($nucl);
+	if($nuclnum>0)
+	{
+		rename $nucl[0] ($msys+"_nucleus");
+		parent ($msys+"_nucleus") $msys;
+	}
+
+
+	rename "hairSystem1" ($msys+"_hairSystem");
+
+	parent ($msys+"_hairSystem") $msys;
+	delete "hairSystem1Follicles" "hairSystem1OutputCurves";
+	
+	//アトリビュート設定
+	$hsshape=`listRelatives -s ($msys+"_hairSystem")`;
+	setAttr ($hsshape[0]+".collideWidthOffset") 1.25;
+	setAttr ($hsshape[0]+".friction") 0.1;
+	setAttr ($hsshape[0]+".stickiness") 0;
+	setAttr ($hsshape[0]+".bendResistance") 6;
+	
+	setAttr ($hsshape[0]+".startCurveAttract") 0.1;
+	setAttr ($hsshape[0]+".drag") 0.1;
+	setAttr ($hsshape[0]+".motionDrag") 0.1;
+	setAttr ($hsshape[0]+".damp") 0.1;
+	setAttr ($hsshape[0]+".stretchDamp") 0.1;
+	setAttr ($msys+"_nucleus.startFrame") 0;
+	setAttr ($msys+"_nucleus.spaceScale") 0.01;
+	setAttr ($msys+"_nucleus.subSteps") 2;
+	setAttr ($msys+"_nucleus.maxCollisionIterations") 3;
+}
+
+
+//■■■■■　Mayav物理ジョイントを検索しリグ用SPIKを作る　■■■■■
+global proc SkirtSPIK()
+{
+	//●●●●●●●●●●変数宣言●●●●●●●●●●
+	global string $AtsCDSName;
+	
+	string $grps[],$mphysJoint[],$mphysStart[],$mphysEnd[],$pwdup[],$pwddown[],$SpikJ[],$cptext[],$jpoint[],$bonename;
+
+	string $msys=($AtsCDSName+"_PhisicsG");
+	string $ipc=($AtsCDSName+"IptCurves");
+	string $opc=($AtsCDSName+"OptCurves");
+	string $sp=($AtsCDSName+"SPIK");
+	string $spc=($AtsCDSName+"SPIKcurves");
+	string $col=($AtsCDSName+"Collisions");
+
+	string $mroot=($AtsCDSName+"_PhisicsCtrlG");
+	string $jroot=($AtsCDSName+"SPIKJointG");
+	string $fkroot=($AtsCDSName+"FKJointG");
+	string $bakeroot=($AtsCDSName+"BakeJointG");
+
+
+	//●●●●●●●●●●選択ジョイントルートを取得●●●●●●●●●●
+	$mphysStart=`ls -sl`;
+	
+	
+	//●●●●●●●●●●SystemGroupを作成＆ペアレント●●●●●●●●●●
+	$grps={$msys,$ipc,$opc,$sp,$spc,$col,$mroot,$jroot,$fkroot,$bakeroot};
+	for($grp in $grps)
+	{
+		group -em -n $grp;
+		if($grp==$ipc || $grp==$opc || $grp==$sp || $grp==$spc || $grp==$col)
+		{
+			parent $grp $msys;
+		}
+		else if($grp==$jroot)
+		{
+			parent $grp $mroot;
+		}
+		else if($grp==$fkroot)
+		{
+			parent $grp $mroot;
+		}
+		else if($grp==$bakeroot)
+		{
+			parent $grp $mroot;
+		}
+	}
+	
+	//●●●●●●●●●●グループを非表示●●●●●●●●●●
+	setAttr ($ipc+".v") 0;
+	setAttr ($opc+".v") 0;
+	setAttr ($sp+".v") 0;
+	setAttr ($spc+".v") 0;
+	
+	setAttr ($jroot+".v") 0;
+	setAttr ($fkroot+".v") 0;
+	
+	
+	
+	//●●●●●●●●●●コントロールグループを親位置にペアレントコンストレイン●●●●●●●●●●
+	$proot=`listRelatives -p $mphysStart[0]`;
+	$pos=`xform -q -ws -rp $proot[0]`;
+	setAttr ($mroot+".tx") $pos[0];
+	setAttr ($mroot+".ty") $pos[1];
+	setAttr ($mroot+".tz") $pos[2];
+	parentConstraint -mo -w 1 -n ($mroot+"_parentConstrain") $proot[0] $mroot;
+
+	
+	//●●●●●●●●●●膝の数値変換リマップを事前作成●●●●●●●●●●
+	shadingNode -asUtility remapValue -n "remapValue_rf";
+	setAttr "remapValue_rf.inputMin" -90;
+	setAttr "remapValue_rf.inputMax" -10;
+	connectAttr -f r_upleg.rx remapValue_rf.inputValue;
+	shadingNode -asUtility remapValue -n "remapValue_lf";
+	setAttr "remapValue_lf.inputMin" -90;
+	setAttr "remapValue_lf.inputMax" -10;
+	connectAttr -f l_upleg.rx remapValue_lf.inputValue;
+	
+	
+	//●●●●●●●●●●SPIKボーン作成とペアレントコンストレイン●●●●●●●●●●
+	for ($ms in $mphysStart)
+	{
+		//●●●●●●●●●●mphys階層を複製●●●●●●●●●●
+		duplicate -n ($ms+"_SPIKJ") -rr -rc $ms; 
+		duplicate -n ($ms+"_FKJ") -rr -rc $ms;
+		duplicate -n ($ms+"_BakeJ") -rr -rc $ms;
+		
+		//●●●●●●●●●●FKCtrlノード作成●●●●●●●●●●
+		$ctrlname=stringRemovePrefix($ms,"mphys_");
+		createNode "transform" -n ($ctrlname+"_FKCtrl");
+		$ctrlpoint=`xform -q -ws -rp $ms`;
+		setAttr ($ctrlname+"_FKCtrl.tx") $ctrlpoint[0];
+		setAttr ($ctrlname+"_FKCtrl.ty") $ctrlpoint[1];
+		setAttr ($ctrlname+"_FKCtrl.tz") $ctrlpoint[2];
+		
+		addAttr -ln "percentX"  -at double  -min 0 -max 2 -dv 0 ($ctrlname+"_FKCtrl");
+		addAttr -ln "percentY"  -at double  -min 0 -max 2 -dv 0 ($ctrlname+"_FKCtrl");
+		addAttr -ln "percentZ"  -at double  -min 0 -max 2 -dv 0 ($ctrlname+"_FKCtrl");
+		addAttr -ln "percentLeg"  -at double  -min 0 -max 1 -dv 0 ($ctrlname+"_FKCtrl");
+		
+		setAttr -e-keyable true ($ctrlname+"_FKCtrl.percentX");
+		setAttr -e-keyable true ($ctrlname+"_FKCtrl.percentY");
+		setAttr -e-keyable true ($ctrlname+"_FKCtrl.percentZ");
+		setAttr -e-keyable true ($ctrlname+"_FKCtrl.percentLeg");	
+		
+		//●●●●●●●●●●SPIKJとFKJとBakeJをペアレント●●●●●●●●●●
+		parent ($ms+"_SPIKJ") $jroot;
+		parent ($ctrlname+"_FKCtrl") $fkroot;
+		parent ($ms+"_FKJ") ($ctrlname+"_FKCtrl");
+		parent ($ms+"_BakeJ") $bakeroot;
+		
+		//●●●●●●●●●●FKCtrlのmultiplyDivide接続と設定●●●●●●●●●●
+		shadingNode -asUtility multiplyDivide -n ("multiplyDivide_"+$ctrlname+"_FKCtrl1");
+		
+		
+		//●●●●●●●●●●左右のUtilityノード作成＆コネクション●●●●●●●●●●
+		int $startA=startsWith($ctrlname,"r");		
+		string $checks[];
+		string $startB;
+		int $checknum;
+		
+		$startB=startString($ctrlname,2);	
+		
+		
+		if($startA==1)
+		{	
+			//●●●●●●●●●●右のUtilityノード●●●●●●●●●●
+			if($startB=="rf" || $startB=="rs")
+			{	
+				$check=`ls "clamp_rf"`; 
+				$checknum=size($check);
+				if ($checknum==0)
+				{
+					//●●●●●●●●●●足が前に動いた時●●●●●●●●●●
+					shadingNode -asUtility clamp -n "clamp_rf";
+					setAttr ("clamp_rf.minR") -180;
+					setAttr ("clamp_rf.minG") -180;
+					setAttr ("clamp_rf.minB") -180;
+					setAttr ("clamp_rf.maxG") 180;
+					
+					connectAttr -f r_upleg.rotate clamp_rf.input;
+					
+					shadingNode -asUtility remapValue -n "remapValue_rfx";
+					setAttr "remapValue_rfx.inputMax" -45;
+					
+					connectAttr -f clamp_rf.outputR remapValue_rfx.inputValue;
+					
+					shadingNode -asUtility multiplyDivide -n "multiplyDivide_rfx";
+					connectAttr -f r_leg.rotate multiplyDivide_rfx.input2;
+					connectAttr -f remapValue_rfx.outColorR multiplyDivide_rfx.input1X;
+					
+					shadingNode -asUtility multiplyDivide -n "multiplyDivide_rfAll";
+					connectAttr -f multiplyDivide_rfx.outputX multiplyDivide_rfAll.input2X;
+					connectAttr -f multiplyDivide_rfx.outputX multiplyDivide_rfAll.input2Y;
+					connectAttr -f multiplyDivide_rfx.outputX multiplyDivide_rfAll.input2Z;
+				}
+				
+				//●●●●●●●●●●FKCtrl1のコネクション●●●●●●●●●●
+				if($startB=="rf")
+				{
+					connectAttr -f clamp_rf.output ("multiplyDivide_"+$ctrlname+"_FKCtrl1.input1");
+				}
+				else
+				{
+					connectAttr -f r_upleg.rotate ("multiplyDivide_"+$ctrlname+"_FKCtrl1.input1");
+				}
+				connectAttr -f ("multiplyDivide_"+$ctrlname+"_FKCtrl1.output") ($ctrlname+"_FKCtrl.rotate");
+				connectAttr -f ($ctrlname+"_FKCtrl.percentX") ("multiplyDivide_"+$ctrlname+"_FKCtrl1.input2X");
+				connectAttr -f ($ctrlname+"_FKCtrl.percentY") ("multiplyDivide_"+$ctrlname+"_FKCtrl1.input2Y");
+				connectAttr -f ($ctrlname+"_FKCtrl.percentZ") ("multiplyDivide_"+$ctrlname+"_FKCtrl1.input2Z");
+
+
+				if($startB=="rf")
+				{
+					connectAttr -f ($ctrlname+"_FKCtrl.percentLeg") multiplyDivide_rfAll.input1X;
+					setAttr ($ctrlname+"_FKCtrl.percentX") 0.5;
+					setAttr ($ctrlname+"_FKCtrl.percentY") 0.5;
+					setAttr ($ctrlname+"_FKCtrl.percentZ") 0.1;
+					setAttr ($ctrlname+"_FKCtrl.percentLeg") 0.1;
+				}
+				else
+				{
+					connectAttr -f ($ctrlname+"_FKCtrl.percentLeg") multiplyDivide_rfAll.input1Z;
+					setAttr ($ctrlname+"_FKCtrl.percentX") 0.2;
+					setAttr ($ctrlname+"_FKCtrl.percentY") 0.5;
+					setAttr ($ctrlname+"_FKCtrl.percentZ") 0.5;
+					setAttr ($ctrlname+"_FKCtrl.percentLeg") 0.1;
+				}
+			}
+			else if($startB=="rb")
+			{				
+				//●●●●●●●●●●足が後ろに動いた時●●●●●●●●●●
+				shadingNode -asUtility clamp -n "clamp_rb";
+				
+				setAttr ("clamp_rb.minG") -180;
+				setAttr ("clamp_rb.minB") -180;
+				setAttr ("clamp_rb.maxR") 180;
+				setAttr ("clamp_rb.maxG") 180;
+					
+				connectAttr -f r_upleg.rotate clamp_rb.input;
+					
+				shadingNode -asUtility plusMinusAverage -n "plusMinusAverage_rb";
+				connectAttr -f r_upleg.rx plusMinusAverage_rb.input1D[0];
+				connectAttr -f r_leg.rx plusMinusAverage_rb.input1D[1];
+				
+				shadingNode -asUtility remapValue -n "remapValue_rbx";
+				setAttr "remapValue_rbx.inputMax" 90;
+				
+				connectAttr -f plusMinusAverage_rb.output1D remapValue_rbx.inputValue;
+				
+				shadingNode -asUtility multiplyDivide -n "multiplyDivide_rbx";
+				
+				connectAttr -f plusMinusAverage_rb.output1D multiplyDivide_rbx.input1X;
+				connectAttr -f remapValue_rbx.outValue multiplyDivide_rbx.input2X;
+				
+				
+				shadingNode -asUtility multiplyDivide -n "multiplyDivide_rbAll";
+				connectAttr -f multiplyDivide_rbx.outputX multiplyDivide_rbAll.input2X;
+				
+				connectAttr -f clamp_rb.output ("multiplyDivide_"+$ctrlname+"_FKCtrl1.input1");
+				connectAttr -f ("multiplyDivide_"+$ctrlname+"_FKCtrl1.output") ($ctrlname+"_FKCtrl.rotate");
+				connectAttr -f ($ctrlname+"_FKCtrl.percentX") ("multiplyDivide_"+$ctrlname+"_FKCtrl1.input2X");
+				connectAttr -f ($ctrlname+"_FKCtrl.percentY") ("multiplyDivide_"+$ctrlname+"_FKCtrl1.input2Y");
+				connectAttr -f ($ctrlname+"_FKCtrl.percentZ") ("multiplyDivide_"+$ctrlname+"_FKCtrl1.input2Z");
+				
+				connectAttr -f ($ctrlname+"_FKCtrl.percentLeg") multiplyDivide_rbAll.input1X;
+				
+				setAttr ($ctrlname+"_FKCtrl.percentX") 0.5;
+				setAttr ($ctrlname+"_FKCtrl.percentY") 0.5;
+				setAttr ($ctrlname+"_FKCtrl.percentZ") 0.3;
+				setAttr ($ctrlname+"_FKCtrl.percentLeg") 0.1;
+			}
+		}
+		
+		//●●●●●●●●●●左のUtilityノード●●●●●●●●●●
+		else
+		{		
+			if($startB=="lf" || $startB=="ls")
+			{	
+				$check=`ls "clamp_lf"`;
+				$checknum=size($check);
+				if ($checknum==0)
+				{
+					//●●●●●●●●●●足が前に動いた時●●●●●●●●●●
+					shadingNode -asUtility clamp -n "clamp_lf";
+					setAttr ("clamp_lf.minR") -180;
+					setAttr ("clamp_lf.minG") -180;
+					setAttr ("clamp_lf.maxG") 180;
+					setAttr ("clamp_lf.maxB") 180;
+					
+					connectAttr -f l_upleg.rotate clamp_lf.input;
+					
+					shadingNode -asUtility remapValue -n "remapValue_lfx";
+					setAttr "remapValue_lfx.inputMax" -45;
+					
+					connectAttr -f clamp_lf.outputR remapValue_lfx.inputValue;
+					
+					shadingNode -asUtility multiplyDivide -n "multiplyDivide_lfx";
+					connectAttr -f l_leg.rotate multiplyDivide_lfx.input2;
+					connectAttr -f remapValue_lfx.outColorR multiplyDivide_lfx.input1X;
+					
+					shadingNode -asUtility multiplyDivide -n "multiplyDivide_lfAll";
+					connectAttr -f multiplyDivide_lfx.outputX multiplyDivide_lfAll.input2X;
+					connectAttr -f multiplyDivide_lfx.outputX multiplyDivide_lfAll.input2Y;
+					connectAttr -f multiplyDivide_lfx.outputX multiplyDivide_lfAll.input2Z;
+				}
+				
+				//●●●●●●●●●●FKCtrl1のコネクション●●●●●●●●●●
+				if($startB=="lf")
+				{
+					connectAttr -f clamp_lf.output ("multiplyDivide_"+$ctrlname+"_FKCtrl1.input1");
+				}
+				else
+				{
+					connectAttr -f l_upleg.rotate ("multiplyDivide_"+$ctrlname+"_FKCtrl1.input1");
+				}
+				connectAttr -f ("multiplyDivide_"+$ctrlname+"_FKCtrl1.output") ($ctrlname+"_FKCtrl.rotate");
+				connectAttr -f ($ctrlname+"_FKCtrl.percentX") ("multiplyDivide_"+$ctrlname+"_FKCtrl1.input2X");
+				connectAttr -f ($ctrlname+"_FKCtrl.percentY") ("multiplyDivide_"+$ctrlname+"_FKCtrl1.input2Y");
+				connectAttr -f ($ctrlname+"_FKCtrl.percentZ") ("multiplyDivide_"+$ctrlname+"_FKCtrl1.input2Z");
+				
+				
+				if($startB=="lf")
+				{
+					connectAttr -f ($ctrlname+"_FKCtrl.percentLeg") multiplyDivide_lfAll.input1X;
+					setAttr ($ctrlname+"_FKCtrl.percentX") 0.5;
+					setAttr ($ctrlname+"_FKCtrl.percentY") 0.5;
+					setAttr ($ctrlname+"_FKCtrl.percentZ") 0.1;
+					setAttr ($ctrlname+"_FKCtrl.percentLeg") 0.1;
+				}
+				else
+				{
+					connectAttr -f ($ctrlname+"_FKCtrl.percentLeg") multiplyDivide_lfAll.input1Z;
+					setAttr ($ctrlname+"_FKCtrl.percentX") 0.2;
+					setAttr ($ctrlname+"_FKCtrl.percentY") 0.5;
+					setAttr ($ctrlname+"_FKCtrl.percentZ") 0.5;
+					setAttr ($ctrlname+"_FKCtrl.percentLeg") 0.1;
+				}
+			}
+			else if($startB=="lb")
+			{
+				//●●●●●●●●●●足が後ろに動いた時●●●●●●●●●●
+				shadingNode -asUtility clamp -n "clamp_lb";
+				
+				setAttr ("clamp_lb.minG") -180;
+				setAttr ("clamp_lb.maxR") 180;
+				setAttr ("clamp_lb.maxG") 180;
+				setAttr ("clamp_lb.maxB") 180;
+					
+				connectAttr -f l_upleg.rotate clamp_lb.input;
+				
+				shadingNode -asUtility plusMinusAverage -n "plusMinusAverage_lb";
+				connectAttr -f l_upleg.rx plusMinusAverage_lb.input1D[0];
+				connectAttr -f l_leg.rx plusMinusAverage_lb.input1D[1];
+				
+				shadingNode -asUtility remapValue -n "remapValue_lbx";
+				setAttr "remapValue_lbx.inputMax" 90;
+				
+				connectAttr -f plusMinusAverage_lb.output1D remapValue_lbx.inputValue;
+				
+				shadingNode -asUtility multiplyDivide -n "multiplyDivide_lbx";
+				
+				connectAttr -f plusMinusAverage_lb.output1D multiplyDivide_lbx.input1X;
+				connectAttr -f remapValue_lbx.outValue multiplyDivide_lbx.input2X;
+				
+				
+				shadingNode -asUtility multiplyDivide -n "multiplyDivide_lbAll";
+				connectAttr -f multiplyDivide_lbx.outputX multiplyDivide_lbAll.input2X;
+				
+				connectAttr -f clamp_lb.output ("multiplyDivide_"+$ctrlname+"_FKCtrl1.input1");
+				connectAttr -f ("multiplyDivide_"+$ctrlname+"_FKCtrl1.output") ($ctrlname+"_FKCtrl.rotate");
+				connectAttr -f ($ctrlname+"_FKCtrl.percentX") ("multiplyDivide_"+$ctrlname+"_FKCtrl1.input2X");
+				connectAttr -f ($ctrlname+"_FKCtrl.percentY") ("multiplyDivide_"+$ctrlname+"_FKCtrl1.input2Y");
+				connectAttr -f ($ctrlname+"_FKCtrl.percentZ") ("multiplyDivide_"+$ctrlname+"_FKCtrl1.input2Z");
+				
+				connectAttr -f ($ctrlname+"_FKCtrl.percentLeg") multiplyDivide_lbAll.input1X;
+				
+				setAttr ($ctrlname+"_FKCtrl.percentX") 0.5;
+				setAttr ($ctrlname+"_FKCtrl.percentY") 0.5;
+				setAttr ($ctrlname+"_FKCtrl.percentZ") 0.3;
+				setAttr ($ctrlname+"_FKCtrl.percentLeg") 0.1;
+			}
+		}
+		//▲▲▲▲▲▲▲▲▲▲ここまでで左右のUtilityノード作成終了▲▲▲▲▲▲▲▲▲▲
+		
+		
+		
+		//●●●●●●●●●●アトリビュートロック●●●●●●●●●●
+		setAttr -l 1 -k 0 -cb 0 ($ctrlname+"_FKCtrl.tx");
+		setAttr -l 1 -k 0 -cb 0 ($ctrlname+"_FKCtrl.ty");
+		setAttr -l 1 -k 0 -cb 0 ($ctrlname+"_FKCtrl.tz");
+		setAttr -l 1 -k 0 -cb 0 ($ctrlname+"_FKCtrl.rx");
+		setAttr -l 1 -k 0 -cb 0 ($ctrlname+"_FKCtrl.ry");
+		setAttr -l 1 -k 0 -cb 0 ($ctrlname+"_FKCtrl.rz");
+		setAttr -l 1 -k 0 -cb 0 ($ctrlname+"_FKCtrl.sx");
+		setAttr -l 1 -k 0 -cb 0 ($ctrlname+"_FKCtrl.sy");
+		setAttr -l 1 -k 0 -cb 0 ($ctrlname+"_FKCtrl.sz");
+		setAttr -l 1 -k 0 -cb 0 ($ctrlname+"_FKCtrl.v");
+		
+		
+		//●●●●●●●●●●ジョイント命名の下準備●●●●●●●●●●
+		select -hi $ms;
+		$origname=`ls -sl`;
+		select -hi ($ms+"_SPIKJ");
+		$spikdpname=`ls -sl`;
+		$bonenum=size($spikdpname);
+		select -hi ($ms+"_FKJ");
+		$fkdpname=`ls -sl`;
+		select -hi ($ms+"_BakeJ");
+		$bakedpname=`ls -sl`;
+		$uphys=`listRelatives -p $ms`;
+		
+		
+		//●●●●●●●●●●ジョイント命名のfor文（骨6本で限定する）●●●●●●●●●●
+		for ($i=0;  $i<5; $i++)
+		{
+			$bonename=stringRemovePrefix($origname[$i],"mphys_");
+			$spiknewname[$i]=($bonename+"_SPIKJ");
+			$fknewname[$i]=($bonename+"_FKJ");
+			$bakenewname[$i]=($bonename+"_BakeJ");
+			$mdname[$i]=("multiplyDivide_"+$bonename+"_spikfk");
+			
+			
+			//●●●●●●●●●●ジョイントリネーム●●●●●●●●●●
+			rename $spikdpname[$i] $spiknewname[$i];
+			rename $fkdpname[$i] $fknewname[$i];
+			rename $bakedpname[$i] $bakenewname[$i];
+			
+			shadingNode -asUtility multiplyDivide -n $mdname[$i];
+			
+			
+			//●●●●●●●●●●シェーディングノードとのコネクション●●●●●●●
+			connectAttr -f ($spiknewname[$i]+".rotate") ($mdname[$i]+".input1");
+			connectAttr -f ($mdname[$i]+".output") ($fknewname[$i]+".rotate");
+			
+			//●●●●●●●●●●2本目と3本目の制御●●●●●●●●●●
+			if($i>0 && $i<3)
+			{
+				$headT=startsWith($bonename,"r");
+				$headRB=startsWith($bonename,"rb");
+				$headLB=startsWith($bonename,"lb");
+				
+				//●●●●●●●●●●スカート後ろのジョイント処理●●●●●●●●●●
+				if($headT==1)
+				{
+					if($i==1 && $headRB!=1)
+					{
+						connectAttr -f remapValue_rf.outValue ($mdname[$i]+".input2Z");
+					}
+				}
+				else
+				{
+					if($i==1 && $headLB!=1)
+					{
+						connectAttr -f remapValue_lf.outValue ($mdname[$i]+".input2Z");
+					}
+				}
+			}
+			
+			//●●●●●●●●●●膝曲げる用のグループノード●●●●●●●●●●
+			if($i==3)
+			{
+				if($startB!="rb" && $startB!="lb")
+				{
+					$pos=`xform -q -ws -rp $fknewname[$i]`;
+					createNode "transform" -n ($bonename+"_FKnull");
+					createNode "transform" -n ($bonename+"_FKrig");
+					parent ($bonename+"_FKrig") ($bonename+"_FKnull");
+					setAttr ($bonename+"_FKnull.tx") $pos[0];
+					setAttr ($bonename+"_FKnull.ty") $pos[1];
+					setAttr ($bonename+"_FKnull.tz") $pos[2];
+					
+					parent ($bonename+"_FKnull") $fknewname[$i-1];
+					parent $fknewname[$i] ($bonename+"_FKrig");
+				}
+				
+				if($startB=="rf")
+				{
+					connectAttr -f multiplyDivide_rfAll.outputX ($bonename+"_FKrig.rotateX");
+				}
+				else if($startB=="rs")
+				{
+					connectAttr -f multiplyDivide_rfAll.outputZ ($bonename+"_FKrig.rotateX");
+				}
+	
+				if($startB=="lf")
+				{
+					connectAttr -f multiplyDivide_lfAll.outputX ($bonename+"_FKrig.rotateX");
+				}
+				else if($startB=="ls")
+				{
+					connectAttr -f multiplyDivide_lfAll.outputZ ($bonename+"_FKrig.rotateX");
+				}
+			}
+			
+			
+			//●●●●●●●●●●全骨のコンストレイン●●●●●●●●●●
+			parentConstraint -mo -w 1 -n ($origname[$i]+"_parentConstrain") $fknewname[$i] $bakenewname[$i];
+			parentConstraint -mo -w 1 -n ($origname[$i]+"_parentConstrain") $bakenewname[$i] $origname[$i];
+		}
+		//▲▲▲▲▲▲▲▲▲▲ジョイント命名のfor文終了▲▲▲▲▲▲▲▲▲▲
+	}
+	
+	//●●●●●●●●●●SPIKに必要なもの作成●●●●●●●●●●
+	$num=size($mphysStart);
+	
+	for ($i=0; $i<$num; $i++)
+	{
+		$bonename=stringRemovePrefix($mphysStart[$i],"mphys_");
+		$SpikJ[$i]=($bonename+"_SPIKJ");
+		$handlename=($bonename+"_SPIKHandle");
+		select -hi $SpikJ[$i];
+		$jpoint=`ls -sl`;
+		
+		//●●●●●●●●●●SPIKカーブを作る＆エンドジョイントを調べる●●●●●●●●●●
+		vector $cpoint[];
+		$jnum=size($jpoint);
+		
+		for($n=0; $n<$jnum; $n++)
+		{
+			$cpoint[$n]=`xform -q -ws -rp $jpoint[$n]`;
+			$cptext[$n]=(" -ep "+$cpoint[$n]);
+			
+			$pwddown=`pickWalk -d down $jpoint[$n]`;
+			$downJudge=`gmatch $pwddown[0] $jpoint[$n]`;
+			if($downJudge==1)
+			{
+				$mphysEnd[$i]=$pwddown[0];
+			}
+		}
+		$epresult=stringArrayToString($cptext,"");
+		$curvename=($SpikJ[$i]+"curve");
+		eval ("curve -d 3"+$epresult+" -n "+$curvename);
+		$cshape=`listRelatives -s $curvename`;
+		rename $cshape[0] ($curvename+"Shape");
+		parent $curvename $spc;
+		
+		//●●●●●●●●●●SPIKを設定●●●●●●●●●●
+		select $SpikJ[$i] $mphysEnd[$i];
+		ikHandle -sol ikSplineSolver -ccv 0 -c $curvename -roc 0 -sj $SpikJ[$i] -ee $mphysEnd[$i] -fj 0 -pcv 0 -n $handlename;
+		parent $handlename $sp; 
+	}
+	$spicorders=`listRelatives -c $spc`;
+	
+	$newcoders=`sort $spicorders`;
+	for($new in $newcoders)
+	{
+		reorder -b $new;
+	}
+
+}

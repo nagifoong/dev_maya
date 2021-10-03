@@ -1,0 +1,2356 @@
+/*>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>	
+//ATS Tool Name (c) 2019
+	DELTATools
+
+//Version
+	3.1
+	For Maya 2019
+    
+//Author
+	Atsushi Yokoyama
+	
+//History 
+	V 1.0 Feb.12.2020
+	V 1.5 Feb.28.2020
+	V　2.0 Mar.04.2020
+	V　3.0 Apr.03.2020
+	V　3.1 Apr.27.2020
+
+
+//Run Command
+	DELTATools;
+
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>*/
+
+global proc DELTATools()
+{
+	if ((`window -ex DELTATools`) == true) deleteUI DELTATools;
+	window -t "DELTATools 3.1" -w 380 -h 200  -s on DELTATools;
+
+	columnLayout -adj 1;
+
+	
+	//出力関係
+		frameLayout -label "OutputTools" -labelAlign "center" -cll 1 -cl 0 -w 380;
+			gridLayout -numberOfColumns 8 -cellWidth 32 -cellHeight 32;
+
+				//DeltaFBXExport（モデル出力）
+				shelfButton -enable 1 -width 32 -height 32 -manage 1 -visible 1
+					-annotation "Delta FBXExport"
+					-label "DeltaFBXExport" -image1 "DeltaFBXExport.png" -style "iconOnly"
+					-command "DeltaFBXExport";
+
+				//名前の重複調査
+				shelfButton -enable 1 -width 32 -height 32 -manage 1 -visible 1
+					-annotation "Double Name Check"
+					-label "DoubleNameCheck" -image1 "DeltaDoubleNameCheck.png" -style "iconOnly"
+					-command "DeltaDoubleNameCheck";
+
+				//DeltaModelCtrlBake（コントローラーのベイク処理）
+				shelfButton -enable 1 -width 32 -height 32 -manage 1 -visible 1
+					-annotation "DeltaModelCtrlBake"
+					-label "DeltaModelCtrlBake" -image1 "DeltaModelCtrlBake.png" -style "iconOnly"
+					-command "DeltaModelCtrlBake";
+				
+				//DeltaModelFootCtrlBake（足コントローラーのベイク処理）
+				shelfButton -enable 1 -width 32 -height 32 -manage 1 -visible 1
+					-annotation "DeltaModelFootCtrlBake"
+					-label "DeltaModelFootCtrlBake" -image1 "DeltaModelFootCtrlBake.png" -style "iconOnly"
+					-command "DeltaModelFootCtrlBake";
+					
+				//DeltaModelFaceBake（顔のベイク処理）
+				shelfButton -enable 1 -width 32 -height 32 -manage 1 -visible 1
+					-annotation "DeltaModelFaceBake"
+					-label "DeltaModelFaceBake" -image1 "DeltaModelFaceBake.png" -style "iconOnly"
+					-command "DeltaModelFaceBake";
+
+				//DeltaModelBaseJointBake（身体の基本ジョイントのベイク）
+				shelfButton -enable 1 -width 32 -height 32 -manage 1 -visible 1
+					-annotation "DeltaModelBaseJointBake"
+					-label "DeltaModelBaseJointBake" -image1 "DeltaModelBaseJointBake.png" -style "iconOnly"
+					-command "DeltaModelBaseJointBake";
+
+				//DeltaClothBake（衣装ののベイク）
+				shelfButton -enable 1 -width 32 -height 32 -manage 1 -visible 1
+					-annotation "DeltaClothBake"
+					-label "DeltaClothBake" -image1 "DeltaClothBake.png" -style "iconOnly"
+					-command "DeltaClothBake";
+				
+				//DeltaCharaPos（キャラポジションの追加or削除）
+				shelfButton -enable 1 -width 32 -height 32 -manage 1 -visible 1
+					-annotation "DeltaCharaPos"
+					-label "DeltaCharaPos" -image1 "DeltaCharaPos.png" -style "iconOnly"
+					-command "DeltaCharaPos";
+
+
+			setParent..;
+		setParent..;
+
+
+	//RigConection
+		frameLayout -label "RigConectionTools" -labelAlign "center" -cll 1 -cl 0 -w 380;
+			gridLayout -numberOfColumns 11 -cellWidth 32 -cellHeight 32;
+
+				//DeltaMcapToCtrl（モーションキャプチャデータとリグコントロール階層を紐付け）
+				shelfButton -enable 1 -width 32 -height 32 -manage 1 -visible 1
+					-annotation "Mocap To RigCtrl"
+					-label "DeltaMcapToCtrl" -image1 "DeltaMcapToCtrl.png" -style "iconOnly"
+					-command "DeltaMcapToCtrl";
+
+				//DeltaCtrlToReference（リグコントロール階層とベース階層を紐付け）
+				shelfButton -enable 1 -width 32 -height 32 -manage 1 -visible 1
+					-annotation "RigCtrl To Reference"
+					-label "DeltaCtrlToReference" -image1 "DeltaCtrlToReference.png" -style "iconOnly"
+					-command "DeltaCtrlToReference";
+					
+				//DeltaBaseToReference（ベース階層と出力階層を紐付け）
+				shelfButton -enable 1 -width 32 -height 32 -manage 1 -visible 1
+					-annotation "Base To Reference"
+					-label "DeltaBaseToReference" -image1 "DeltaBaseToReference.png" -style "iconOnly"
+					-command "DeltaBaseToReference";
+
+				//DeltaFaceCtrlPlus（顔コントロールとブレンドシェイプと接続）
+				shelfButton -enable 1 -width 32 -height 32 -manage 1 -visible 1
+					-annotation "FaceCtrl to BlendShape"
+					-label "FaceCtrl to BlendShape" -image1 "DeltaFaceCtrlPlus.png" -style "iconOnly"
+					-command "DeltaFaceCtrlPlus";
+
+				//DeltaFingerRigCtrl（DELTA専用　Mayaでの微調整及び、Maya上で指のパターンを定義する）
+				shelfButton -enable 1 -width 32 -height 32 -manage 1 -visible 1
+					-annotation "DeltaFingerRigCtrl"
+					-label "DeltaFingerRigCtrl" -image1 "DeltaFingerRigCtrl.png" -style "iconOnly"
+					-command "DeltaFingerRigCtrl";
+
+				//DeltaFingerRigDelete（DELTA専用　上記リグをデリート）
+				shelfButton -enable 1 -width 32 -height 32 -manage 1 -visible 1
+					-annotation "DeltaFingerRigDelete"
+					-label "DeltaFingerRigDelete" -image1 "DeltaFingerRigDelete.png" -style "iconOnly"
+					-command "DeltaFingerRigDelete";
+					
+				//DeltaElbowRig（肘の補助制御を追加）
+				shelfButton -enable 1 -width 32 -height 32 -manage 1 -visible 1
+					-annotation "DeltaElbowRig"
+					-label "DeltaElbowRig" -image1 "DeltaElbowRig.png" -style "iconOnly"
+					-command "DeltaElbowRig";
+
+				//DeltaCtrlDefault（コントローラー初期設定）
+				shelfButton -enable 1 -width 32 -height 32 -manage 1 -visible 1
+					-annotation "DeltaCtrlDefault"
+					-label "DeltaCtrlDefault" -image1 "DeltaCtrlDefault.png" -style "iconOnly"
+					-command "DeltaCtrlDefault";
+
+				//DeltaRLFingerPoseCopy（左右のどちらかの指のポーズを片方の指にコピー）
+				shelfButton -enable 1 -width 32 -height 32 -manage 1 -visible 1
+					-annotation "DeltaRLFingerPoseCopy"
+					-label "DeltaRLFingerPoseCopy" -image1 "DeltaRLFingerPoseCopy.png" -style "iconOnly"
+					-command "DeltaRLFingerPoseCopy";
+
+				//DeltaFingerPoseAdd（新しい手指パターンの登録）
+				shelfButton -enable 1 -width 32 -height 32 -manage 1 -visible 1
+					-annotation "DeltaFingerPoseAdd"
+					-label "DeltaFingerPoseAdd" -image1 "DeltaFingerPoseAdd.png" -style "iconOnly"
+					-command "DeltaFingerPoseAdd";
+					
+				//DeltaMotionStartSet（初期位置合わせ及びシミュレーション準備）
+				shelfButton -enable 1 -width 32 -height 32 -manage 1 -visible 1
+					-annotation "DeltaMotionStartSet"
+					-label "DeltaMotionStartSet" -image1 "DeltaMotionStartSet.png" -style "iconOnly"
+					-command "DeltaMotionStartSet";
+					
+
+			setParent..;
+		setParent..;
+		
+		
+//column end
+//		setParent..;
+
+
+		button -l "Close" -c "deleteUI DELTATools;";
+
+	showWindow;
+
+}
+
+
+
+
+
+//■■■■■　FBX出力　■■■■■
+global proc DeltaFBXExport()
+{
+	//●●●●●●●●●●共通命令部分●●●●●●●●●●
+	string $path,$sn,$outputname,$startsn,$possn,$cp[];
+	int $cpnum;
+	$path = `workspace -q -rd`;
+	$sn=`file -q -shn -sn`;
+	$sn=`basenameEx $sn`;
+	$outputname=($path+"scenes/"+$sn+".fbx");
+	$bake=gmatch($sn,"*_bake");
+	$exp=gmatch($sn,"*_exp");
+	$cp=`ls "CharaPos"`;
+	$cpnum=size($cp);
+	
+	int $ok=0;
+	
+	string $result=`confirmDialog -title "DeltaFBXExport" -message "FBX Export?"
+    -button "Yes" -button "No" -defaultButton "Yes"
+    -cancelButton "No" -dismissString "No"`;
+
+	if ($result == "Yes")
+	{	
+		$startsn=startString($sn,3);
+		
+		switch($startsn)
+		{
+			//●●●●●●●●●●衣装選択●●●●●●●●●●
+			default:
+
+				$sel=`ls "GEO" "reference" "constrain_r_hand" "constrain_l_hand"`;
+				if(size($sel)==4)
+				{
+					$ok=1;
+					select -r "GEO" "reference" "constrain_r_hand" "constrain_l_hand";
+				}
+				else
+				{
+					$ok=0;
+				}
+				break;
+		
+		
+			//●●●●●●●●●●顔選択●●●●●●●●●●
+			case "Fac":	
+				
+				$sel=`ls "GEO_eyebrow" "GEO_eye_l" "GEO_eye_r" "GEO_upper" "GEO_lower" "GEO_base"`;
+				if(size($sel)==6)
+				{
+					$ok=1;
+					select -r "GEO_eyebrow" "GEO_eye_l" "GEO_eye_r" "GEO_upper" "GEO_lower" "GEO_base";
+				}
+				else
+				{
+					$ok=0;
+				}
+				break;
+
+			//●●●●●●●●●●髪選択●●●●●●●●●●
+			case "Har":	
+
+				$sel=`ls "GEO_Hair" "root_head"`;
+				if(size($sel)==2)
+				{
+					$ok=1;
+					select -r "GEO_Hair" "root_head";
+				}
+				else
+				{
+					$ok=0;
+				}
+				break;
+		}
+		
+		//●●●●●●●●●●FBX出力●●●●●●●●●●
+		if($ok==1)
+		{
+			FBXResetExport;
+			FBXExportConstraints -v 1;
+			FBXExport -f $outputname -s;
+		
+			print ("Save "+$outputname);
+			
+			confirmDialog -title "DeltaFBXExport" -message ("Save "+$outputname) -b "OK" -db "OK";
+			
+			//●●●●●●●●●●CharaposのFBX出力●●●●●●●●●●
+			if($cpnum==1)
+			{
+				if($bake==1)
+				{
+					$possn=`substitute "_bake" $sn "_pos"`;
+					$outputname=($path+"scenes/"+$possn+".fbx");
+					select "CharaPos";
+				}
+				else if($exp==1)
+				{
+					$possn=`substitute "_exp" $sn "_pos"`;
+					$outputname=($path+"scenes/"+$possn+".fbx");
+					select "CharaPos";
+				}
+				FBXResetExport;
+				FBXExportConstraints -v 1;
+				FBXExport -f $outputname -s;
+		
+				print ("Save "+$outputname);
+			
+				confirmDialog -title "DeltaFBXExport" -message ("Save "+$outputname) -b "OK" -db "OK";
+			}
+		}
+		else
+		{
+			warning "The data has a problem";
+			
+			confirmDialog -title "DeltaFBXExport" -message "The data has a problem" -icn "warning" -b "Please Data Check" -db "Please Data Check";
+		}
+	}
+}
+
+//■■■■■　名前重複検査　■■■■■
+global proc DeltaDoubleNameCheck()
+{
+	select -cl;
+	string $objname;
+	string $objnames[];
+	$objnames=`ls -tr`;
+	for ($objname in $objnames)
+	{
+		string $hikaku ="*|*";
+		$hikakuresult = `gmatch $objname $hikaku`;
+		if($hikakuresult== 1)
+		{
+			select -add $objname;
+			print "Please change object name　";
+		}
+	}
+	$objnames=`ls -sl`;
+	if (`size($objnames)` == 0)
+	{
+		print "No DoubleName >> OK!!";
+	}
+}
+
+
+
+//■■■■■　目をカスタムアトリビュートへ出力　■■■■■
+global proc DeltaEyeBake()
+{
+	python("import SetEyeAnimationToCustomAttribute");
+	python("SetEyeAnimationToCustomAttribute.OpenWindow()");	
+}
+
+
+//■■■■■　ベースジョイント階層から出力階層へのコンストレイン　■■■■■
+global proc DeltaBaseToReference()
+{
+	//●●●●●●●●●●メインボディ部分のコンストレイン●●●●●●●●●●
+	parentConstraint -mo -w 1 base_root root;
+	parentConstraint -mo -w 1 base_hips hips;
+	parentConstraint -mo -w 1 base_spine spine;
+	parentConstraint -mo -w 1 base_spine1 spine1;
+	parentConstraint -mo -w 1 base_neck neck;
+	parentConstraint -mo -w 1 base_head head;
+	parentConstraint -mo -w 1 base_r_shoulder r_shoulder;
+	parentConstraint -mo -w 1 base_l_shoulder l_shoulder;
+
+	parentConstraint -mo -w 1 base_r_arm r_arm;
+	parentConstraint -mo -w 1 base_r_forearm r_forearm;
+	parentConstraint -mo -w 1 base_r_hand r_hand;
+	parentConstraint -mo -w 1 base_r_armroll r_armroll;
+	parentConstraint -mo -w 1 base_r_forearmroll r_forearmroll;
+	parentConstraint -mo -w 1 base_r_elbowroll r_elbowroll;
+
+
+	parentConstraint -mo -w 1 base_l_arm l_arm;
+	parentConstraint -mo -w 1 base_l_forearm l_forearm;
+	parentConstraint -mo -w 1 base_l_hand l_hand;
+	parentConstraint -mo -w 1 base_l_armroll l_armroll;
+	parentConstraint -mo -w 1 base_l_forearmroll l_forearmroll;
+	parentConstraint -mo -w 1 base_l_elbowroll l_elbowroll;
+
+	parentConstraint -mo -w 1 base_r_upleg r_upleg;
+	parentConstraint -mo -w 1 base_r_leg r_leg;
+	parentConstraint -mo -w 1 base_r_foot r_foot;
+	parentConstraint -mo -w 1 base_r_toebase r_toebase;
+
+	parentConstraint -mo -w 1 base_l_upleg l_upleg;
+	parentConstraint -mo -w 1 base_l_leg l_leg;
+	parentConstraint -mo -w 1 base_l_foot l_foot;
+	parentConstraint -mo -w 1 base_l_toebase l_toebase;
+
+
+	//●●●●●●●●●●指部分のコンストレイン●●●●●●●●●●
+	parentConstraint -mo -w 1 base_r_handthumb1 r_handthumb1;
+	parentConstraint -mo -w 1 base_r_handthumb2 r_handthumb2;
+	parentConstraint -mo -w 1 base_r_handthumb3 r_handthumb3;
+
+	parentConstraint -mo -w 1 base_r_handindex1 r_handindex1;
+	parentConstraint -mo -w 1 base_r_handindex2 r_handindex2;
+	parentConstraint -mo -w 1 base_r_handindex3 r_handindex3;
+
+	parentConstraint -mo -w 1 base_r_handmiddle1 r_handmiddle1;
+	parentConstraint -mo -w 1 base_r_handmiddle2 r_handmiddle2;
+	parentConstraint -mo -w 1 base_r_handmiddle3 r_handmiddle3;
+
+	parentConstraint -mo -w 1 base_r_handring1 r_handring1;
+	parentConstraint -mo -w 1 base_r_handring2 r_handring2;
+	parentConstraint -mo -w 1 base_r_handring3 r_handring3;
+
+	parentConstraint -mo -w 1 base_r_handpinky1 r_handpinky1;
+	parentConstraint -mo -w 1 base_r_handpinky2 r_handpinky2;
+	parentConstraint -mo -w 1 base_r_handpinky3 r_handpinky3;
+	
+	parentConstraint -mo -w 1 base_l_handthumb1 l_handthumb1;
+	parentConstraint -mo -w 1 base_l_handthumb2 l_handthumb2;
+	parentConstraint -mo -w 1 base_l_handthumb3 l_handthumb3;
+
+	parentConstraint -mo -w 1 base_l_handindex1 l_handindex1;
+	parentConstraint -mo -w 1 base_l_handindex2 l_handindex2;
+	parentConstraint -mo -w 1 base_l_handindex3 l_handindex3;
+
+	parentConstraint -mo -w 1 base_l_handmiddle1 l_handmiddle1;
+	parentConstraint -mo -w 1 base_l_handmiddle2 l_handmiddle2;
+	parentConstraint -mo -w 1 base_l_handmiddle3 l_handmiddle3;
+
+	parentConstraint -mo -w 1 base_l_handring1 l_handring1;
+	parentConstraint -mo -w 1 base_l_handring2 l_handring2;
+	parentConstraint -mo -w 1 base_l_handring3 l_handring3;
+
+	parentConstraint -mo -w 1 base_l_handpinky1 l_handpinky1;
+	parentConstraint -mo -w 1 base_l_handpinky2 l_handpinky2;
+	parentConstraint -mo -w 1 base_l_handpinky3 l_handpinky3;
+}
+
+
+
+//■■■■■　モーションキャプチャデータからコントロール階層へのコンストレイン　■■■■■
+global proc DeltaMcapToCtrl()
+{
+	//●●●●●●●●●●PVのロック解除●●●●●●●●●●
+	string $pvc[]={"r_armPV_ctrl","l_armPV_ctrl","r_footPV_ctrl","l_footPV_ctrl"};
+	for($pv in $pvc)
+	{
+		setAttr -lock false -keyable false ($pv+".rx");
+		setAttr -lock false -keyable false ($pv+".ry");
+		setAttr -lock false -keyable false ($pv+".rz");
+	}
+
+	//●●●●●●●●●●メインボディ部分のコンストレイン●●●●●●●●●●
+	parentConstraint -mo -w 1 mcap_hips hips_ctrl;
+	orientConstraint -mo -w 1 mcap_spine spine_ctrl;
+	orientConstraint -mo -w 1 mcap_spine1 spine1_ctrl;
+	orientConstraint -mo -w 1 mcap_neck neck_ctrl;
+	orientConstraint -mo -w 1 mcap_head head_ctrl;
+	orientConstraint -mo -w 1 mcap_r_shoulder r_shoulder_ctrl;
+	orientConstraint -mo -w 1 mcap_l_shoulder l_shoulder_ctrl;
+
+	pointConstraint -mo -w 1 mcap_r_hand r_armIK_ctrl;
+	parentConstraint -mo -w 1 mcap_r_arm r_armPV_ctrl;
+	orientConstraint -mo -w 1 mcap_r_hand r_hand_ctrl;
+
+	pointConstraint -mo -w 1 mcap_l_hand l_armIK_ctrl;
+	parentConstraint -mo -w 1 mcap_l_arm l_armPV_ctrl;
+	orientConstraint -mo -w 1 mcap_l_hand l_hand_ctrl;
+
+	parentConstraint -mo -w 1 mcap_r_foot r_footIK1_ctrl;
+	parentConstraint -mo -w 1 mcap_r_upleg r_footPV_ctrl;
+	parentConstraint -mo -skipTranslate x -skipTranslate y -skipTranslate z -w 1 mcap_r_toebase r_footIK3_ctrl;
+
+	parentConstraint -mo -w 1 mcap_l_foot l_footIK1_ctrl;
+	parentConstraint -mo -w 1 mcap_l_upleg l_footPV_ctrl;
+	parentConstraint -mo -skipTranslate x -skipTranslate y -skipTranslate z -w 1 mcap_l_toebase l_footIK3_ctrl;
+
+	//●●●●●●●●●●指部分のコンストレイン●●●●●●●●●●（こちらは必要なくなったので除外）
+	//orientConstraint -mo -w 1 mcap_r_handthumb1 r_thumb1_mcp;
+	//orientConstraint -mo -skip x -skip y -w 1 mcap_r_handthumb2 r_thumb2_mcp;
+	//orientConstraint -mo -skip x -skip y -w 1 mcap_r_handthumb3 r_thumb3_mcp;
+
+	//orientConstraint -mo -w 1 mcap_r_handindex1 r_index1_mcp;
+	//orientConstraint -mo -skip x -skip y -w 1 mcap_r_handindex2 r_index2_mcp;
+	//orientConstraint -mo -skip x -skip y -w 1 mcap_r_handindex3 r_index3_mcp;
+
+	//orientConstraint -mo -w 1 mcap_r_handmiddle1 r_middle1_mcp;
+	//orientConstraint -mo -skip x -skip y -w 1 mcap_r_handmiddle2 r_middle2_mcp;
+	//orientConstraint -mo -skip x -skip y -w 1 mcap_r_handmiddle3 r_middle3_mcp;
+
+	//orientConstraint -mo -w 1 mcap_r_handring1 r_ring1_mcp;
+	//orientConstraint -mo -skip x -skip y -w 1 mcap_r_handring2 r_ring2_mcp;
+	//orientConstraint -mo -skip x -skip y -w 1 mcap_r_handring3 r_ring3_mcp;
+
+	//orientConstraint -mo -w 1 mcap_r_handpinky1 r_pinky1_mcp;
+	//orientConstraint -mo -skip x -skip y -w 1 mcap_r_handpinky2 r_pinky2_mcp;
+	//orientConstraint -mo -skip x -skip y -w 1 mcap_r_handpinky3 r_pinky3_mcp;
+	
+	
+	//orientConstraint -mo -w 1 mcap_l_handthumb1 l_thumb1_mcp;
+	//orientConstraint -mo -skip x -skip y -w 1 mcap_l_handthumb2 l_thumb2_mcp;
+	//orientConstraint -mo -skip x -skip y -w 1 mcap_l_handthumb3 l_thumb3_mcp;
+
+	//orientConstraint -mo -w 1 mcap_l_handindex1 l_index1_mcp;
+	//orientConstraint -mo -skip x -skip y -w 1 mcap_l_handindex2 l_index2_mcp;
+	//orientConstraint -mo -skip x -skip y -w 1 mcap_l_handindex3 l_index3_mcp;
+
+	//orientConstraint -mo -w 1 mcap_l_handmiddle1 l_middle1_mcp;
+	//orientConstraint -mo -skip x -skip y -w 1 mcap_l_handmiddle2 l_middle2_mcp;
+	//orientConstraint -mo -skip x -skip y -w 1 mcap_l_handmiddle3 l_middle3_mcp;
+
+	//orientConstraint -mo -w 1 mcap_l_handring1 l_ring1_mcp;
+	//orientConstraint -mo -skip x -skip y -w 1 mcap_l_handring2 l_ring2_mcp;
+	//orientConstraint -mo -skip x -skip y -w 1 mcap_l_handring3 l_ring3_mcp;
+
+	//orientConstraint -mo -w 1 mcap_l_handpinky1 l_pinky1_mcp;
+	//orientConstraint -mo -skip x -skip y -w 1 mcap_l_handpinky2 l_pinky2_mcp;
+	//orientConstraint -mo -skip x -skip y -w 1 mcap_l_handpinky3 l_pinky3_mcp;
+}
+
+
+
+//■■■■■　コントロール階層からベース階層へのコンストレイン　■■■■■
+global proc DeltaCtrlToReference()
+{
+	//●●●●●●●●●●メインボディ部分のコンストレイン●●●●●●●●●●
+	parentConstraint -mo -w 1 -skipRotate x -skipRotate y -skipRotate z ctrl_hips base_root;
+	parentConstraint -mo -w 1 -skipTranslate x -skipTranslate y -skipTranslate z ctrl_hips base_hips;
+	parentConstraint -mo -w 1 ctrl_spine base_spine;
+	parentConstraint -mo -w 1 ctrl_spine1 base_spine1;
+	parentConstraint -mo -w 1 ctrl_neck base_neck;
+	parentConstraint -mo -w 1 ctrl_head base_head;
+	parentConstraint -mo -w 1 ctrl_r_shoulder base_r_shoulder;
+	parentConstraint -mo -w 1 ctrl_l_shoulder base_l_shoulder;
+
+	parentConstraint -mo -w 1 r_arm_OriginalJ base_r_arm;
+	parentConstraint -mo -w 1 r_forearm_OriginalJ base_r_forearm;
+	parentConstraint -mo -w 1 ctrl_r_hand base_r_hand;
+	parentConstraint -mo -w 1 ctrl_r_arm base_r_armroll;
+	parentConstraint -mo -w 1 ctrl_r_forearmroll base_r_forearmroll;
+	parentConstraint -mo -w 1 ctrl_r_elbowroll base_r_elbowroll;
+	
+	parentConstraint -mo -w 1 l_arm_OriginalJ base_l_arm;
+	parentConstraint -mo -w 1 l_forearm_OriginalJ base_l_forearm;
+	parentConstraint -mo -w 1 ctrl_l_hand base_l_hand;
+	parentConstraint -mo -w 1 ctrl_l_arm base_l_armroll;
+	parentConstraint -mo -w 1 ctrl_l_forearmroll base_l_forearmroll;
+	parentConstraint -mo -w 1 ctrl_l_elbowroll base_l_elbowroll;
+	
+	
+	parentConstraint -mo -w 1 ctrl_r_upleg base_r_upleg;
+	parentConstraint -mo -w 1 ctrl_r_leg base_r_leg;	
+	parentConstraint -mo -w 1 ctrl_r_foot base_r_foot;
+	parentConstraint -mo -w 1 ctrl_r_toebase base_r_toebase;
+
+	parentConstraint -mo -w 1 ctrl_l_upleg base_l_upleg;
+	parentConstraint -mo -w 1 ctrl_l_leg base_l_leg;
+	parentConstraint -mo -w 1 ctrl_l_foot base_l_foot;
+	parentConstraint -mo -w 1 ctrl_l_toebase base_l_toebase;
+
+
+	//●●●●●●●●●●指部分のコンストレイン●●●●●●●●●●
+	parentConstraint -mo -w 1 ctrl_r_handthumb1 base_r_handthumb1;
+	parentConstraint -mo -w 1 ctrl_r_handthumb2 base_r_handthumb2;
+	parentConstraint -mo -w 1 ctrl_r_handthumb3 base_r_handthumb3;
+
+	parentConstraint -mo -w 1 ctrl_r_handindex1 base_r_handindex1;
+	parentConstraint -mo -w 1 ctrl_r_handindex2 base_r_handindex2;
+	parentConstraint -mo -w 1 ctrl_r_handindex3 base_r_handindex3;
+
+	parentConstraint -mo -w 1 ctrl_r_handmiddle1 base_r_handmiddle1;
+	parentConstraint -mo -w 1 ctrl_r_handmiddle2 base_r_handmiddle2;
+	parentConstraint -mo -w 1 ctrl_r_handmiddle3 base_r_handmiddle3;
+
+	parentConstraint -mo -w 1 ctrl_r_handring1 base_r_handring1;
+	parentConstraint -mo -w 1 ctrl_r_handring2 base_r_handring2;
+	parentConstraint -mo -w 1 ctrl_r_handring3 base_r_handring3;
+
+	parentConstraint -mo -w 1 ctrl_r_handpinky1 base_r_handpinky1;
+	parentConstraint -mo -w 1 ctrl_r_handpinky2 base_r_handpinky2;
+	parentConstraint -mo -w 1 ctrl_r_handpinky3 base_r_handpinky3;
+	
+	parentConstraint -mo -w 1 ctrl_l_handthumb1 base_l_handthumb1;
+	parentConstraint -mo -w 1 ctrl_l_handthumb2 base_l_handthumb2;
+	parentConstraint -mo -w 1 ctrl_l_handthumb3 base_l_handthumb3;
+
+	parentConstraint -mo -w 1 ctrl_l_handindex1 base_l_handindex1;
+	parentConstraint -mo -w 1 ctrl_l_handindex2 base_l_handindex2;
+	parentConstraint -mo -w 1 ctrl_l_handindex3 base_l_handindex3;
+
+	parentConstraint -mo -w 1 ctrl_l_handmiddle1 base_l_handmiddle1;
+	parentConstraint -mo -w 1 ctrl_l_handmiddle2 base_l_handmiddle2;
+	parentConstraint -mo -w 1 ctrl_l_handmiddle3 base_l_handmiddle3;
+
+	parentConstraint -mo -w 1 ctrl_l_handring1 base_l_handring1;
+	parentConstraint -mo -w 1 ctrl_l_handring2 base_l_handring2;
+	parentConstraint -mo -w 1 ctrl_l_handring3 base_l_handring3;
+
+	parentConstraint -mo -w 1 ctrl_l_handpinky1 base_l_handpinky1;
+	parentConstraint -mo -w 1 ctrl_l_handpinky2 base_l_handpinky2;
+	parentConstraint -mo -w 1 ctrl_l_handpinky3 base_l_handpinky3;
+}
+
+
+
+//■■■■■　顔コントロールとブレンドシェイプと接続　■■■■■
+global proc DeltaFaceCtrlPlus()
+{
+	//●●●●●●●●●●変数宣言●●●●●●●●●●
+	string $face[]={"eyebrow_ctrl","Face_ctrl","Mouth_ctrl"};
+	string $bshape[]={"eyebrow","upper","lower"};
+	string $facial[];
+	string $md="multiplyDivide";
+	string $eyes[]={"R_eye_ctrl","L_eye_ctrl","R_eyeHLight_ctrl","L_eyeHLight_ctrl"};
+	string $eyeloc[]={"Ex_EyePu_R","Ex_EyePu_L","Ex_EyeHi_R","Ex_EyeHi_L"};
+	
+	
+	//●●●●●●●●●●ブレンドシェイプと接続●●●●●●●●●●
+	for($i=0; $i<3; $i++)
+	{
+		$facial=`listAttr -m -st "weight" $bshape[$i]`;
+		$fsize=size($facial);
+		for($fi=0; $fi<$fsize;  $fi++)
+		{
+			addAttr -ln $facial[$fi] -at double -min 0 -max 1 -dv 0 $face[$i];
+			setAttr -e-keyable true ($face[$i]+"."+$facial[$fi]);
+			connectAttr -f ($face[$i]+"."+$facial[$fi]) ($bshape[$i]+"."+$facial[$fi]);
+		}
+
+	}
+	
+	//●●●●●●●●●●目のコントロール接続●●●●●●●●●●
+	for($i=0; $i<4; $i++)
+	{
+		shadingNode -asUtility $md -n ($md+"_"+$eyes[$i]);
+		setAttr ($md+"_"+$eyes[$i]+".input2X") 0.1;
+		setAttr ($md+"_"+$eyes[$i]+".input2Y") 0.1;
+		connectAttr -f ($eyes[$i]+".tx") ($md+"_"+$eyes[$i]+".input1X");
+		connectAttr -f ($eyes[$i]+".ty") ($md+"_"+$eyes[$i]+".input1Y");
+		connectAttr -f ($md+"_"+$eyes[$i]+".outputX") ($eyeloc[$i]+".tx");
+		connectAttr -f ($md+"_"+$eyes[$i]+".outputY") ($eyeloc[$i]+".ty");
+		
+		connectAttr -f ($eyes[$i]+".rz") ($eyeloc[$i]+".rz");
+		connectAttr -f ($eyes[$i]+".sx") ($eyes[$i]+".sy");		
+		connectAttr -f ($eyes[$i]+".sx") ($eyeloc[$i]+".sx");
+		connectAttr -f ($eyes[$i]+".sx") ($eyeloc[$i]+".sy");
+	}
+}
+
+
+
+//■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+//指CTRLのMEL（DELTA専用）
+global proc DeltaFingerRigCtrl()
+{
+	//●●●●●●●●●●変数宣言●●●●●●●●●●
+	string $anames[];
+	string $bnames[];
+	$anames ={"thumb1","thumb2","thumb3","index1","index2","index3",
+			"middle1","middle2","middle3","ring1","ring2","ring3","pinky1","pinky2","pinky3"};
+	$bnames ={"thumb_","index_","middle_","ring_","pinky_"};
+	string $judge,$v,$values[];
+	
+	//●●●●●●●●●●指パターン変数（増える場合は追加する）●●●●●●●●●●
+	$fvar ={"Grip","Curl","Relax","Spread","Mic"};
+
+	string $lrn;
+	string $lrnames[]={"l_","r_"};
+	
+	
+	//●●●●●●●●●●指のコントロール作成●●●●●●●●●●
+	for ( $lrn  in  $lrnames )
+	{
+		for ($i=0; $i<15; $i++)
+		{
+			$rig=($lrn+$anames[$i]+"_rig");
+			$rigrot=($lrn+$anames[$i]+"_rigrot");
+			$mcp=($lrn+$anames[$i]+"_mcp");
+			$mcprot=($lrn+$anames[$i]+"_mctrl");
+			$null=($lrn+$anames[$i]+"_null");
+			$nullc=`listRelatives -c $null`;
+			
+			
+			
+			group -em -n $rig;
+			curve -d 1 -p 0 1 0 -p 1 0 0 -p 0 0 1 -p -1 0 0 -p 0 0 -1 -p 0 1 0 -p 0 0 1 -p 0 -1 0 -p 0 0 -1 -p 1 0 0 -p 0 1 0 -p -1 0 0 -p 0 -1 0 -p 1 0 0 -k 0 -k 1 -k 2 -k 3 -k 4 -k 5 -k 6 -k 7 -k 8 -k 9 -k 10 -k 11 -k 12 -k 13 -n $rigrot;
+			//group -em -n $rigrot;
+			parent $rigrot $rig;
+			
+			group -em -n $mcp;
+			curve -d 1 -p 0.5 0.5 0.5 -p 0.5 0.5 -0.5 -p -0.5 0.5 -0.5 -p -0.5 -0.5 -0.5 -p 0.5 -0.5 -0.5 -p 0.5 0.5 -0.5 -p -0.5 0.5 -0.5 -p -0.5 0.5 0.5 -p 0.5 0.5 0.5 -p 0.5 -0.5 0.5 -p 0.5 -0.5 -0.5 -p -0.5 -0.5 -0.5 -p -0.5 -0.5 0.5 -p 0.5 -0.5 0.5 -p -0.5 -0.5 0.5 -p -0.5 0.5 0.5 
+			-k 0 -k 1 -k 2 -k 3 -k 4 -k 5 -k 6 -k 7 -k 8 -k 9 -k 10 -k 11 -k 12 -k 13 -k 14 -k 15 -n $mcprot;
+			
+			$t1=`gmatch $mcprot "*thumb1*"`;
+			$t2=`gmatch $mcprot "*thumb2*"`;
+
+			if($t1==1)
+			{
+				setAttr ($mcprot+".scale") 2 2 2;
+			}
+			else if($t2==1)
+			{
+				setAttr ($mcprot+".scale") 1.25 1.25 1.25;
+			}
+			
+			$c1=`gmatch $mcprot "*1*"`;
+			$c2=`gmatch $mcprot "*2*"`;
+
+			if($c1==1)
+			{
+				color -ud 6 $mcprot;
+			}
+			else if($c2==1)
+			{
+				color -ud 7 $mcprot;
+			}
+			else
+			{
+				color -ud 8 $mcprot;
+			}
+
+			parent $mcprot $mcp;
+			
+			$pos=`xform -q -ws -rp $null`;
+			$rot=`xform -q -ws -ro $null`;
+			
+			setAttr ($rig+".tx") $pos[0];
+			setAttr ($rig+".ty") $pos[1];
+			setAttr ($rig+".tz") $pos[2];
+			
+			setAttr ($rig+".rx") $rot[0];
+			setAttr ($rig+".ry") $rot[1];
+			setAttr ($rig+".rz") $rot[2];
+			
+			setAttr ($mcp+".tx") $pos[0];
+			setAttr ($mcp+".ty") $pos[1];
+			setAttr ($mcp+".tz") $pos[2];
+			
+			setAttr ($mcp+".rx") $rot[0];
+			setAttr ($mcp+".ry") $rot[1];
+			setAttr ($mcp+".rz") $rot[2];
+			
+			setAttr -l 0 ($null+".tx");
+			setAttr -l 0 ($null+".ty");
+			setAttr -l 0 ($null+".tz");
+
+			setAttr -l 0 -k 1 ($null+".rx");
+			setAttr -l 0 -k 1 ($null+".ry");
+			setAttr -l 0 -k 1 ($null+".rz");
+			
+			setAttr -l 0 -k 0 ($nullc[0]+".v") ;
+			setAttr ($nullc[0]+".v") 0;
+			setAttr -l 1 -k 0 ($nullc[0]+".v") ;
+
+			$judge=`gmatch $anames[$i] "*1"`;
+			if($judge==1)
+			{
+				parent $rig $null;
+				parent $mcp $null;
+
+				parent $rig ($lrn+"hand_ctrl");
+				parent $mcp ($lrn+"hand_ctrl");
+			}
+			else
+			{
+				parent $rig $null;
+				parent $mcp $null;
+
+				parent $rig ($lrn+$anames[$i-1]+"_rigrot");
+				parent $mcp ($lrn+$anames[$i-1]+"_mctrl");
+			}
+			orientConstraint -mo -w 1 $rigrot $null;
+			orientConstraint -mo -w 1 $mcprot $null;
+			
+			$values=`listAttr -k $rig`;
+			
+			
+			for($v in $values)
+			{
+				setAttr -l 1 -k 0 -cb 0 ($rig+"."+$v);
+				setAttr -l 1 -k 0 -cb 0 ($mcp+"."+$v);
+				
+				//●●●●●●●●●●手の第一関節のみヴィジブル残す●●●●●●●●●
+				$fingerend=endString($anames[$i],1);
+				if($fingerend==1)
+				{
+					setAttr -l 0 -k 1 -cb 1 ($rig+".v");
+					setAttr -l 0 -k 1 -cb 1 ($mcp+".v");
+				}
+				
+				//●●●●●●●●●●Rotateのみ残す●●●●●●●●●
+				$judge=`gmatch $v "rotate*"`;
+				if($judge!=1)
+				{
+					setAttr -l 1 -k 0 -cb 0 ($rigrot+"."+$v);
+					setAttr -l 1 -k 0 -cb 0 ($mcprot+"."+$v);
+				}
+				//●●●●●●●●●●第一関節以外はZのみにする●●●●●●●●●
+				if($fingerend!=1)
+				{
+					setAttr -l 1 -k 0 -cb 0 ($rigrot+".rx");
+					setAttr -l 1 -k 0 -cb 0 ($rigrot+".ry");
+					setAttr -l 1 -k 0 -cb 0 ($mcprot+".rx");
+					setAttr -l 1 -k 0 -cb 0 ($mcprot+".ry");
+				}
+
+			}
+		}
+		
+		//●●●●●●●●●●手のパターンセットドリブンKey追加●●●●●●●●●
+		$lrbig=capitalizeString($lrn);
+		$subc=($lrbig+"sub_ctrl");
+		$finAB="finger_mctrl_to_rig";
+		$subAB=($subc+"."+$finAB);
+		
+		addAttr -ln $finAB -at double  -min 0 -max 10 -dv 0 $subc;
+		setAttr -e-keyable true $subAB;
+		
+		
+		for($fv in $fvar)
+		{
+			for ($bn in $bnames)
+			{
+				$At=$bn+$fv;
+				$subAt=($subc+"."+$At);
+				addAttr -ln $At -at double  -min 0 -max 10 -dv 0 $subc;
+				setAttr -e -keyable true $subAt;
+				
+				//●●●●●●●●●●指初期値●●●●●●●●●
+				
+				if($bn=="thumb_")
+				{
+					//親指　初期値
+					setDrivenKeyframe -cd $subAt -dv 0 ($lrn+"thumb1_rigrot.rx");
+					setDrivenKeyframe -cd $subAt -dv 0 ($lrn+"thumb1_rigrot.ry");
+					setDrivenKeyframe -cd $subAt -dv 0 ($lrn+"thumb1_rigrot.rz");
+					setDrivenKeyframe -cd $subAt -dv 0 ($lrn+"thumb2_rigrot.rz");	
+					setDrivenKeyframe -cd $subAt -dv 0 ($lrn+"thumb3_rigrot.rz");
+				}
+				else if($bn=="index_")
+				{
+					//人差し指　初期値
+					setDrivenKeyframe -cd $subAt -dv 0 ($lrn+"index1_rigrot.rx");
+					setDrivenKeyframe -cd $subAt -dv 0 ($lrn+"index1_rigrot.ry");
+					setDrivenKeyframe -cd $subAt -dv 0 ($lrn+"index1_rigrot.rz");
+					setDrivenKeyframe -cd $subAt -dv 0 ($lrn+"index2_rigrot.rz");
+					setDrivenKeyframe -cd $subAt -dv 0 ($lrn+"index3_rigrot.rz");
+				}
+				else if	($bn=="middle_")
+				{
+					//中指　初期値
+					setDrivenKeyframe -cd $subAt -dv 0 ($lrn+"middle1_rigrot.rx");
+					setDrivenKeyframe -cd $subAt -dv 0 ($lrn+"middle1_rigrot.ry");
+					setDrivenKeyframe -cd $subAt -dv 0 ($lrn+"middle1_rigrot.rz");
+					setDrivenKeyframe -cd $subAt -dv 0 ($lrn+"middle2_rigrot.rz");
+					setDrivenKeyframe -cd $subAt -dv 0 ($lrn+"middle3_rigrot.rz");
+				}
+				else if ($bn=="ring_")
+				{
+					//薬指　初期値
+					setDrivenKeyframe -cd $subAt -dv 0 ($lrn+"ring1_rigrot.rx");
+					setDrivenKeyframe -cd $subAt -dv 0 ($lrn+"ring1_rigrot.ry");
+					setDrivenKeyframe -cd $subAt -dv 0 ($lrn+"ring1_rigrot.rz");
+					setDrivenKeyframe -cd $subAt -dv 0 ($lrn+"ring2_rigrot.rz");
+					setDrivenKeyframe -cd $subAt -dv 0 ($lrn+"ring3_rigrot.rz");
+				}
+				else if ($bn=="pinky_")
+				{
+					//小指　初期値
+					setDrivenKeyframe -cd $subAt -dv 0 ($lrn+"pinky1_rigrot.rx");
+					setDrivenKeyframe -cd $subAt -dv 0 ($lrn+"pinky1_rigrot.ry");
+					setDrivenKeyframe -cd $subAt -dv 0 ($lrn+"pinky1_rigrot.rz");
+					setDrivenKeyframe -cd $subAt -dv 0 ($lrn+"pinky2_rigrot.rz");
+					setDrivenKeyframe -cd $subAt -dv 0 ($lrn+"pinky3_rigrot.rz");
+				}
+			}
+		}
+
+		
+		//●●●●●●●●●●指パターン登録（増える場合は追加する）●●●●●●●●●
+		$tgrip=($subc+".thumb_Grip");
+		$igrip=($subc+".index_Grip");
+		$mgrip=($subc+".middle_Grip");
+		$rgrip=($subc+".ring_Grip");
+		$pgrip=($subc+".pinky_Grip");
+		
+		$tcurl=($subc+".thumb_Curl");
+		$icurl=($subc+".index_Curl");		
+		$mcurl=($subc+".middle_Curl");		
+		$rcurl=($subc+".ring_Curl");
+		$pcurl=($subc+".pinky_Curl");
+		
+		$trelax=($subc+".thumb_Relax");
+		$irelax=($subc+".index_Relax");
+		$mrelax=($subc+".middle_Relax");
+		$rrelax=($subc+".ring_Relax");
+		$prelax=($subc+".pinky_Relax");
+		
+		$tspread=($subc+".thumb_Spread");
+		$ispread=($subc+".index_Spread");
+		$mspread=($subc+".middle_Spread");
+		$rspread=($subc+".ring_Spread");
+		$pspread=($subc+".pinky_Spread");
+		
+		$tmic=($subc+".thumb_Mic");
+		$imic=($subc+".index_Mic");
+		$mmic=($subc+".middle_Mic");
+		$rmic=($subc+".ring_Mic");
+		$pmic=($subc+".pinky_Mic");
+		
+		
+		//左右別設定
+		if($lrn=="r_")
+		{
+			//★★★右手パターン登録★★★
+			
+				//●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●【　握り　】●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
+				//親指
+				setDrivenKeyframe -cd $tgrip -dv 5 -v 5 ($lrn+"thumb1_rigrot.rz");
+				
+				setDrivenKeyframe -cd $tgrip -dv 10 -v 0 ($lrn+"thumb1_rigrot.rx");
+				setDrivenKeyframe -cd $tgrip -dv 10 -v 5 ($lrn+"thumb1_rigrot.ry");
+				setDrivenKeyframe -cd $tgrip -dv 10 -v 25 ($lrn+"thumb1_rigrot.rz");
+				setDrivenKeyframe -cd $tgrip -dv 10 -v 60 ($lrn+"thumb2_rigrot.rz");	
+				setDrivenKeyframe -cd $tgrip -dv 10 -v 80 ($lrn+"thumb3_rigrot.rz");
+				//人差し指
+				setDrivenKeyframe -cd $igrip -dv 5 -v 10 ($lrn+"index1_rigrot.rz");
+				setDrivenKeyframe -cd $igrip -dv 5 -v 65 ($lrn+"index2_rigrot.rz");		
+				setDrivenKeyframe -cd $igrip -dv 5 -v 50 ($lrn+"index3_rigrot.rz");
+				
+				setDrivenKeyframe -cd $igrip -dv 10 -v -10 ($lrn+"index1_rigrot.rx");
+				setDrivenKeyframe -cd $igrip -dv 10 -v -10 ($lrn+"index1_rigrot.ry");
+				setDrivenKeyframe -cd $igrip -dv 10 -v 85 ($lrn+"index1_rigrot.rz");
+				setDrivenKeyframe -cd $igrip -dv 10 -v 95 ($lrn+"index2_rigrot.rz");		
+				setDrivenKeyframe -cd $igrip -dv 10 -v 60 ($lrn+"index3_rigrot.rz");
+				//中指　握り
+				setDrivenKeyframe -cd $mgrip -dv 5 -v 10 ($lrn+"middle1_rigrot.rz");
+				setDrivenKeyframe -cd $mgrip -dv 5 -v 60 ($lrn+"middle2_rigrot.rz");
+				setDrivenKeyframe -cd $mgrip -dv 5 -v 55 ($lrn+"middle3_rigrot.rz");
+				
+				setDrivenKeyframe -cd $mgrip -dv 10 -v -3 ($lrn+"middle1_rigrot.rx");
+				setDrivenKeyframe -cd $mgrip -dv 10 -v -3 ($lrn+"middle1_rigrot.ry");
+				setDrivenKeyframe -cd $mgrip -dv 10 -v 80 ($lrn+"middle1_rigrot.rz");
+				setDrivenKeyframe -cd $mgrip -dv 10 -v 90 ($lrn+"middle2_rigrot.rz");
+				setDrivenKeyframe -cd $mgrip -dv 10 -v 65 ($lrn+"middle3_rigrot.rz");				
+				//薬指　握り
+				setDrivenKeyframe -cd $rgrip -dv 5 -v 10 ($lrn+"ring1_rigrot.rz");
+				setDrivenKeyframe -cd $rgrip -dv 5 -v 60 ($lrn+"ring2_rigrot.rz");
+				setDrivenKeyframe -cd $rgrip -dv 5 -v 65 ($lrn+"ring3_rigrot.rz");	
+				
+				setDrivenKeyframe -cd $rgrip -dv 10 -v 4 ($lrn+"ring1_rigrot.rx");
+				setDrivenKeyframe -cd $rgrip -dv 10 -v 4 ($lrn+"ring1_rigrot.ry");
+				setDrivenKeyframe -cd $rgrip -dv 10 -v 85 ($lrn+"ring1_rigrot.rz");
+				setDrivenKeyframe -cd $rgrip -dv 10 -v 90 ($lrn+"ring2_rigrot.rz");
+				setDrivenKeyframe -cd $rgrip -dv 10 -v 75 ($lrn+"ring3_rigrot.rz");				
+				//小指　握り
+				setDrivenKeyframe -cd $pgrip -dv 5 -v 10 ($lrn+"pinky1_rigrot.rz");
+				setDrivenKeyframe -cd $pgrip -dv 5 -v 60 ($lrn+"pinky2_rigrot.rz");
+				setDrivenKeyframe -cd $pgrip -dv 5 -v 65 ($lrn+"pinky3_rigrot.rz");
+				
+				setDrivenKeyframe -cd $pgrip -dv 10 -v 12 ($lrn+"pinky1_rigrot.rx");
+				setDrivenKeyframe -cd $pgrip -dv 10 -v 12 ($lrn+"pinky1_rigrot.ry");
+				setDrivenKeyframe -cd $pgrip -dv 10 -v 85 ($lrn+"pinky1_rigrot.rz");
+				setDrivenKeyframe -cd $pgrip -dv 10 -v 90 ($lrn+"pinky2_rigrot.rz");
+				setDrivenKeyframe -cd $pgrip -dv 10 -v 75 ($lrn+"pinky3_rigrot.rz");	
+			
+
+				//●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●【　カール　】●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
+				//親指
+				setDrivenKeyframe -cd $tcurl -dv 10 -v -10 ($lrn+"thumb1_rigrot.rx");
+				setDrivenKeyframe -cd $tcurl -dv 10 -v 10 ($lrn+"thumb1_rigrot.ry");
+				setDrivenKeyframe -cd $tcurl -dv 10 -v -10 ($lrn+"thumb1_rigrot.rz");
+				setDrivenKeyframe -cd $tcurl -dv 10 -v -15 ($lrn+"thumb2_rigrot.rz");	
+				setDrivenKeyframe -cd $tcurl -dv 10 -v -10 ($lrn+"thumb3_rigrot.rz");
+				//人差し指
+				setDrivenKeyframe -cd $icurl -dv 10 -v 0 ($lrn+"index1_rigrot.rx");
+				setDrivenKeyframe -cd $icurl -dv 10 -v 0 ($lrn+"index1_rigrot.ry");
+				setDrivenKeyframe -cd $icurl -dv 10 -v -15 ($lrn+"index1_rigrot.rz");
+				setDrivenKeyframe -cd $icurl -dv 10 -v -10 ($lrn+"index2_rigrot.rz");		
+				setDrivenKeyframe -cd $icurl -dv 10 -v -10 ($lrn+"index3_rigrot.rz");				
+				//中指
+				setDrivenKeyframe -cd $mcurl -dv 10 -v 0 ($lrn+"middle1_rigrot.rx");
+				setDrivenKeyframe -cd $mcurl -dv 10 -v 0 ($lrn+"middle1_rigrot.ry");
+				setDrivenKeyframe -cd $mcurl -dv 10 -v -15 ($lrn+"middle1_rigrot.rz");
+				setDrivenKeyframe -cd $mcurl -dv 10 -v -10 ($lrn+"middle2_rigrot.rz");
+				setDrivenKeyframe -cd $mcurl -dv 10 -v -10 ($lrn+"middle3_rigrot.rz");				
+				//薬指
+				setDrivenKeyframe -cd $rcurl -dv 10 -v 0 ($lrn+"ring1_rigrot.rx");
+				setDrivenKeyframe -cd $rcurl -dv 10 -v 0 ($lrn+"ring1_rigrot.ry");
+				setDrivenKeyframe -cd $rcurl -dv 10 -v -15 ($lrn+"ring1_rigrot.rz");
+				setDrivenKeyframe -cd $rcurl -dv 10 -v -10 ($lrn+"ring2_rigrot.rz");
+				setDrivenKeyframe -cd $rcurl -dv 10 -v -10 ($lrn+"ring3_rigrot.rz");			
+				//小指
+				setDrivenKeyframe -cd $pcurl -dv 10 -v 0 ($lrn+"pinky1_rigrot.rx");
+				setDrivenKeyframe -cd $pcurl -dv 10 -v 0 ($lrn+"pinky1_rigrot.ry");
+				setDrivenKeyframe -cd $pcurl -dv 10 -v -15 ($lrn+"pinky1_rigrot.rz");
+				setDrivenKeyframe -cd $pcurl -dv 10 -v -10 ($lrn+"pinky2_rigrot.rz");
+				setDrivenKeyframe -cd $pcurl -dv 10 -v -10 ($lrn+"pinky3_rigrot.rz");
+				
+
+				//●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●【　リラックス　】●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
+				//親指
+				setDrivenKeyframe -cd $trelax -dv 10 -v -15 ($lrn+"thumb1_rigrot.rx");
+				setDrivenKeyframe -cd $trelax -dv 10 -v 5 ($lrn+"thumb1_rigrot.ry");
+				setDrivenKeyframe -cd $trelax -dv 10 -v 5 ($lrn+"thumb1_rigrot.rz");
+				setDrivenKeyframe -cd $trelax -dv 10 -v 30 ($lrn+"thumb2_rigrot.rz");	
+				setDrivenKeyframe -cd $trelax -dv 10 -v 30 ($lrn+"thumb3_rigrot.rz");
+				//人差し指
+				setDrivenKeyframe -cd $irelax -dv 10 -v 0 ($lrn+"index1_rigrot.rx");
+				setDrivenKeyframe -cd $irelax -dv 10 -v 0 ($lrn+"index1_rigrot.ry");
+				setDrivenKeyframe -cd $irelax -dv 10 -v 15 ($lrn+"index1_rigrot.rz");
+				setDrivenKeyframe -cd $irelax -dv 10 -v 15 ($lrn+"index2_rigrot.rz");		
+				setDrivenKeyframe -cd $irelax -dv 10 -v 15 ($lrn+"index3_rigrot.rz");				
+				//中指
+				setDrivenKeyframe -cd $mrelax -dv 10 -v 0 ($lrn+"middle1_rigrot.rx");
+				setDrivenKeyframe -cd $mrelax -dv 10 -v 0 ($lrn+"middle1_rigrot.ry");
+				setDrivenKeyframe -cd $mrelax -dv 10 -v 10 ($lrn+"middle1_rigrot.rz");
+				setDrivenKeyframe -cd $mrelax -dv 10 -v 15($lrn+"middle2_rigrot.rz");
+				setDrivenKeyframe -cd $mrelax -dv 10 -v 15 ($lrn+"middle3_rigrot.rz");				
+				//薬指
+				setDrivenKeyframe -cd $rrelax -dv 10 -v 0 ($lrn+"ring1_rigrot.rx");
+				setDrivenKeyframe -cd $rrelax -dv 10 -v 0 ($lrn+"ring1_rigrot.ry");
+				setDrivenKeyframe -cd $rrelax -dv 10 -v 15 ($lrn+"ring1_rigrot.rz");
+				setDrivenKeyframe -cd $rrelax -dv 10 -v 25 ($lrn+"ring2_rigrot.rz");
+				setDrivenKeyframe -cd $rrelax -dv 10 -v 20 ($lrn+"ring3_rigrot.rz");			
+				//小指
+				setDrivenKeyframe -cd $prelax -dv 10 -v 0 ($lrn+"pinky1_rigrot.rx");
+				setDrivenKeyframe -cd $prelax -dv 10 -v 0 ($lrn+"pinky1_rigrot.ry");
+				setDrivenKeyframe -cd $prelax -dv 10 -v 20 ($lrn+"pinky1_rigrot.rz");
+				setDrivenKeyframe -cd $prelax -dv 10 -v 20 ($lrn+"pinky2_rigrot.rz");
+				setDrivenKeyframe -cd $prelax -dv 10 -v 20 ($lrn+"pinky3_rigrot.rz");	
+
+
+				//●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●【　スプレッド　】●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
+				//親指
+				setDrivenKeyframe -cd $tspread -dv 10 -v -15 ($lrn+"thumb1_rigrot.rx");
+				setDrivenKeyframe -cd $tspread -dv 10 -v -5 ($lrn+"thumb1_rigrot.ry");
+				setDrivenKeyframe -cd $tspread -dv 10 -v -10 ($lrn+"thumb1_rigrot.rz");
+				setDrivenKeyframe -cd $tspread -dv 10 -v -5 ($lrn+"thumb2_rigrot.rz");	
+				setDrivenKeyframe -cd $tspread -dv 10 -v -5 ($lrn+"thumb3_rigrot.rz");
+				//人差し指
+				setDrivenKeyframe -cd $ispread -dv 10 -v 14 ($lrn+"index1_rigrot.rx");
+				setDrivenKeyframe -cd $ispread -dv 10 -v 0 ($lrn+"index1_rigrot.ry");
+				setDrivenKeyframe -cd $ispread -dv 10 -v 0 ($lrn+"index1_rigrot.rz");
+				setDrivenKeyframe -cd $ispread -dv 10 -v -5 ($lrn+"index2_rigrot.rz");		
+				setDrivenKeyframe -cd $ispread -dv 10 -v -5 ($lrn+"index3_rigrot.rz");				
+				//中指
+				setDrivenKeyframe -cd $mspread -dv 10 -v 2 ($lrn+"middle1_rigrot.rx");
+				setDrivenKeyframe -cd $mspread -dv 10 -v 0 ($lrn+"middle1_rigrot.ry");
+				setDrivenKeyframe -cd $mspread -dv 10 -v 0 ($lrn+"middle1_rigrot.rz");
+				setDrivenKeyframe -cd $mspread -dv 10 -v -5 ($lrn+"middle2_rigrot.rz");
+				setDrivenKeyframe -cd $mspread -dv 10 -v -5 ($lrn+"middle3_rigrot.rz");				
+				//薬指
+				setDrivenKeyframe -cd $rspread -dv 10 -v -10 ($lrn+"ring1_rigrot.rx");
+				setDrivenKeyframe -cd $rspread -dv 10 -v 0 ($lrn+"ring1_rigrot.ry");
+				setDrivenKeyframe -cd $rspread -dv 10 -v 0 ($lrn+"ring1_rigrot.rz");
+				setDrivenKeyframe -cd $rspread -dv 10 -v -5 ($lrn+"ring2_rigrot.rz");
+				setDrivenKeyframe -cd $rspread -dv 10 -v -5 ($lrn+"ring3_rigrot.rz");			
+				//小指
+				setDrivenKeyframe -cd $pspread -dv 10 -v -22 ($lrn+"pinky1_rigrot.rx");
+				setDrivenKeyframe -cd $pspread -dv 10 -v 0 ($lrn+"pinky1_rigrot.ry");
+				setDrivenKeyframe -cd $pspread -dv 10 -v 0 ($lrn+"pinky1_rigrot.rz");
+				setDrivenKeyframe -cd $pspread -dv 10 -v -5 ($lrn+"pinky2_rigrot.rz");
+				setDrivenKeyframe -cd $pspread -dv 10 -v -5  ($lrn+"pinky3_rigrot.rz");
+				
+
+				//●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●【　マイク　】●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
+				//親指
+				setDrivenKeyframe -cd $tmic -dv 10 -v 12 ($lrn+"thumb1_rigrot.rx");
+				setDrivenKeyframe -cd $tmic -dv 10 -v 10 ($lrn+"thumb1_rigrot.ry");
+				setDrivenKeyframe -cd $tmic -dv 10 -v 30 ($lrn+"thumb1_rigrot.rz");
+				setDrivenKeyframe -cd $tmic -dv 10 -v 60 ($lrn+"thumb2_rigrot.rz");	
+				setDrivenKeyframe -cd $tmic -dv 10 -v 70 ($lrn+"thumb3_rigrot.rz");
+				//人差し指
+				setDrivenKeyframe -cd $imic -dv 10 -v -6 ($lrn+"index1_rigrot.rx");
+				setDrivenKeyframe -cd $imic -dv 10 -v -6 ($lrn+"index1_rigrot.ry");
+				setDrivenKeyframe -cd $imic -dv 10 -v 70 ($lrn+"index1_rigrot.rz");
+				setDrivenKeyframe -cd $imic -dv 10 -v 60 ($lrn+"index2_rigrot.rz");		
+				setDrivenKeyframe -cd $imic -dv 10 -v 50 ($lrn+"index3_rigrot.rz");				
+				//中指
+				setDrivenKeyframe -cd $mmic -dv 10 -v 0 ($lrn+"middle1_rigrot.rx");
+				setDrivenKeyframe -cd $mmic -dv 10 -v 0 ($lrn+"middle1_rigrot.ry");
+				setDrivenKeyframe -cd $mmic -dv 10 -v 70 ($lrn+"middle1_rigrot.rz");
+				setDrivenKeyframe -cd $mmic -dv 10 -v 70 ($lrn+"middle2_rigrot.rz");
+				setDrivenKeyframe -cd $mmic -dv 10 -v 60 ($lrn+"middle3_rigrot.rz");				
+				//薬指
+				setDrivenKeyframe -cd $rmic -dv 10 -v 5 ($lrn+"ring1_rigrot.rx");
+				setDrivenKeyframe -cd $rmic -dv 10 -v 5 ($lrn+"ring1_rigrot.ry");
+				setDrivenKeyframe -cd $rmic -dv 10 -v 70 ($lrn+"ring1_rigrot.rz");
+				setDrivenKeyframe -cd $rmic -dv 10 -v 75 ($lrn+"ring2_rigrot.rz");
+				setDrivenKeyframe -cd $rmic -dv 10 -v 35 ($lrn+"ring3_rigrot.rz");			
+				//小指
+				setDrivenKeyframe -cd $pmic -dv 10 -v 12 ($lrn+"pinky1_rigrot.rx");
+				setDrivenKeyframe -cd $pmic -dv 10 -v 12 ($lrn+"pinky1_rigrot.ry");
+				setDrivenKeyframe -cd $pmic -dv 10 -v 72 ($lrn+"pinky1_rigrot.rz");
+				setDrivenKeyframe -cd $pmic -dv 10 -v 60 ($lrn+"pinky2_rigrot.rz");
+				setDrivenKeyframe -cd $pmic -dv 10 -v 30  ($lrn+"pinky3_rigrot.rz");
+		}
+		else
+		{
+			//★★★左手パターン登録★★★
+			
+				//●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●【　握り　】●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
+				//親指
+				setDrivenKeyframe -cd $tgrip -dv 5 -v 5 ($lrn+"thumb1_rigrot.rz");
+				
+				setDrivenKeyframe -cd $tgrip -dv 10 -v 0 ($lrn+"thumb1_rigrot.rx");
+				setDrivenKeyframe -cd $tgrip -dv 10 -v -5 ($lrn+"thumb1_rigrot.ry");
+				setDrivenKeyframe -cd $tgrip -dv 10 -v 25 ($lrn+"thumb1_rigrot.rz");
+				setDrivenKeyframe -cd $tgrip -dv 10 -v 60 ($lrn+"thumb2_rigrot.rz");	
+				setDrivenKeyframe -cd $tgrip -dv 10 -v 80 ($lrn+"thumb3_rigrot.rz");
+				//人差し指
+				setDrivenKeyframe -cd $igrip -dv 5 -v -10 ($lrn+"index1_rigrot.rz");
+				setDrivenKeyframe -cd $igrip -dv 5 -v -65 ($lrn+"index2_rigrot.rz");		
+				setDrivenKeyframe -cd $igrip -dv 5 -v -50 ($lrn+"index3_rigrot.rz");
+				
+				setDrivenKeyframe -cd $igrip -dv 10 -v -10 ($lrn+"index1_rigrot.rx");
+				setDrivenKeyframe -cd $igrip -dv 10 -v 10 ($lrn+"index1_rigrot.ry");
+				setDrivenKeyframe -cd $igrip -dv 10 -v -85 ($lrn+"index1_rigrot.rz");
+				setDrivenKeyframe -cd $igrip -dv 10 -v -95 ($lrn+"index2_rigrot.rz");		
+				setDrivenKeyframe -cd $igrip -dv 10 -v -60 ($lrn+"index3_rigrot.rz");
+				//中指　握り
+				setDrivenKeyframe -cd $mgrip -dv 5 -v -10 ($lrn+"middle1_rigrot.rz");
+				setDrivenKeyframe -cd $mgrip -dv 5 -v -60 ($lrn+"middle2_rigrot.rz");
+				setDrivenKeyframe -cd $mgrip -dv 5 -v -55 ($lrn+"middle3_rigrot.rz");
+				
+				setDrivenKeyframe -cd $mgrip -dv 10 -v -3 ($lrn+"middle1_rigrot.rx");
+				setDrivenKeyframe -cd $mgrip -dv 10 -v 3 ($lrn+"middle1_rigrot.ry");
+				setDrivenKeyframe -cd $mgrip -dv 10 -v -80 ($lrn+"middle1_rigrot.rz");
+				setDrivenKeyframe -cd $mgrip -dv 10 -v -90 ($lrn+"middle2_rigrot.rz");
+				setDrivenKeyframe -cd $mgrip -dv 10 -v -65 ($lrn+"middle3_rigrot.rz");				
+				//薬指　握り
+				setDrivenKeyframe -cd $rgrip -dv 5 -v -10 ($lrn+"ring1_rigrot.rz");
+				setDrivenKeyframe -cd $rgrip -dv 5 -v -60 ($lrn+"ring2_rigrot.rz");
+				setDrivenKeyframe -cd $rgrip -dv 5 -v -65 ($lrn+"ring3_rigrot.rz");	
+				
+				setDrivenKeyframe -cd $rgrip -dv 10 -v 4 ($lrn+"ring1_rigrot.rx");
+				setDrivenKeyframe -cd $rgrip -dv 10 -v -4 ($lrn+"ring1_rigrot.ry");
+				setDrivenKeyframe -cd $rgrip -dv 10 -v -85 ($lrn+"ring1_rigrot.rz");
+				setDrivenKeyframe -cd $rgrip -dv 10 -v -90 ($lrn+"ring2_rigrot.rz");
+				setDrivenKeyframe -cd $rgrip -dv 10 -v -75 ($lrn+"ring3_rigrot.rz");				
+				//小指　握り
+				setDrivenKeyframe -cd $pgrip -dv 5 -v -10 ($lrn+"pinky1_rigrot.rz");
+				setDrivenKeyframe -cd $pgrip -dv 5 -v -60 ($lrn+"pinky2_rigrot.rz");
+				setDrivenKeyframe -cd $pgrip -dv 5 -v -65 ($lrn+"pinky3_rigrot.rz");
+				
+				setDrivenKeyframe -cd $pgrip -dv 10 -v 12 ($lrn+"pinky1_rigrot.rx");
+				setDrivenKeyframe -cd $pgrip -dv 10 -v -12 ($lrn+"pinky1_rigrot.ry");
+				setDrivenKeyframe -cd $pgrip -dv 10 -v -85 ($lrn+"pinky1_rigrot.rz");
+				setDrivenKeyframe -cd $pgrip -dv 10 -v -90 ($lrn+"pinky2_rigrot.rz");
+				setDrivenKeyframe -cd $pgrip -dv 10 -v -75 ($lrn+"pinky3_rigrot.rz");	
+			
+
+				//●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●【　カール　】●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
+				//親指
+				setDrivenKeyframe -cd $tcurl -dv 10 -v 10 ($lrn+"thumb1_rigrot.rx");
+				setDrivenKeyframe -cd $tcurl -dv 10 -v -10 ($lrn+"thumb1_rigrot.ry");
+				setDrivenKeyframe -cd $tcurl -dv 10 -v -10 ($lrn+"thumb1_rigrot.rz");
+				setDrivenKeyframe -cd $tcurl -dv 10 -v -15 ($lrn+"thumb2_rigrot.rz");	
+				setDrivenKeyframe -cd $tcurl -dv 10 -v -10 ($lrn+"thumb3_rigrot.rz");
+				//人差し指
+				setDrivenKeyframe -cd $icurl -dv 10 -v 0 ($lrn+"index1_rigrot.rx");
+				setDrivenKeyframe -cd $icurl -dv 10 -v 0 ($lrn+"index1_rigrot.ry");
+				setDrivenKeyframe -cd $icurl -dv 10 -v 15 ($lrn+"index1_rigrot.rz");
+				setDrivenKeyframe -cd $icurl -dv 10 -v 10 ($lrn+"index2_rigrot.rz");		
+				setDrivenKeyframe -cd $icurl -dv 10 -v 10 ($lrn+"index3_rigrot.rz");				
+				//中指
+				setDrivenKeyframe -cd $mcurl -dv 10 -v 0 ($lrn+"middle1_rigrot.rx");
+				setDrivenKeyframe -cd $mcurl -dv 10 -v 0 ($lrn+"middle1_rigrot.ry");
+				setDrivenKeyframe -cd $mcurl -dv 10 -v 15 ($lrn+"middle1_rigrot.rz");
+				setDrivenKeyframe -cd $mcurl -dv 10 -v 10 ($lrn+"middle2_rigrot.rz");
+				setDrivenKeyframe -cd $mcurl -dv 10 -v 10 ($lrn+"middle3_rigrot.rz");				
+				//薬指
+				setDrivenKeyframe -cd $rcurl -dv 10 -v 0 ($lrn+"ring1_rigrot.rx");
+				setDrivenKeyframe -cd $rcurl -dv 10 -v 0 ($lrn+"ring1_rigrot.ry");
+				setDrivenKeyframe -cd $rcurl -dv 10 -v 15 ($lrn+"ring1_rigrot.rz");
+				setDrivenKeyframe -cd $rcurl -dv 10 -v 10 ($lrn+"ring2_rigrot.rz");
+				setDrivenKeyframe -cd $rcurl -dv 10 -v 10 ($lrn+"ring3_rigrot.rz");			
+				//小指
+				setDrivenKeyframe -cd $pcurl -dv 10 -v 0 ($lrn+"pinky1_rigrot.rx");
+				setDrivenKeyframe -cd $pcurl -dv 10 -v 0 ($lrn+"pinky1_rigrot.ry");
+				setDrivenKeyframe -cd $pcurl -dv 10 -v 15 ($lrn+"pinky1_rigrot.rz");
+				setDrivenKeyframe -cd $pcurl -dv 10 -v 10 ($lrn+"pinky2_rigrot.rz");
+				setDrivenKeyframe -cd $pcurl -dv 10 -v 10 ($lrn+"pinky3_rigrot.rz");
+				
+
+				//●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●【　リラックス　】●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
+				//親指
+				setDrivenKeyframe -cd $trelax -dv 10 -v 15 ($lrn+"thumb1_rigrot.rx");
+				setDrivenKeyframe -cd $trelax -dv 10 -v -5 ($lrn+"thumb1_rigrot.ry");
+				setDrivenKeyframe -cd $trelax -dv 10 -v 5 ($lrn+"thumb1_rigrot.rz");
+				setDrivenKeyframe -cd $trelax -dv 10 -v 30 ($lrn+"thumb2_rigrot.rz");	
+				setDrivenKeyframe -cd $trelax -dv 10 -v 30 ($lrn+"thumb3_rigrot.rz");
+				//人差し指
+				setDrivenKeyframe -cd $irelax -dv 10 -v 0 ($lrn+"index1_rigrot.rx");
+				setDrivenKeyframe -cd $irelax -dv 10 -v 0 ($lrn+"index1_rigrot.ry");
+				setDrivenKeyframe -cd $irelax -dv 10 -v -15 ($lrn+"index1_rigrot.rz");
+				setDrivenKeyframe -cd $irelax -dv 10 -v -15 ($lrn+"index2_rigrot.rz");		
+				setDrivenKeyframe -cd $irelax -dv 10 -v -15 ($lrn+"index3_rigrot.rz");				
+				//中指
+				setDrivenKeyframe -cd $mrelax -dv 10 -v 0 ($lrn+"middle1_rigrot.rx");
+				setDrivenKeyframe -cd $mrelax -dv 10 -v 0 ($lrn+"middle1_rigrot.ry");
+				setDrivenKeyframe -cd $mrelax -dv 10 -v -10 ($lrn+"middle1_rigrot.rz");
+				setDrivenKeyframe -cd $mrelax -dv 10 -v -15($lrn+"middle2_rigrot.rz");
+				setDrivenKeyframe -cd $mrelax -dv 10 -v -15 ($lrn+"middle3_rigrot.rz");				
+				//薬指
+				setDrivenKeyframe -cd $rrelax -dv 10 -v 0 ($lrn+"ring1_rigrot.rx");
+				setDrivenKeyframe -cd $rrelax -dv 10 -v 0 ($lrn+"ring1_rigrot.ry");
+				setDrivenKeyframe -cd $rrelax -dv 10 -v -15 ($lrn+"ring1_rigrot.rz");
+				setDrivenKeyframe -cd $rrelax -dv 10 -v -25 ($lrn+"ring2_rigrot.rz");
+				setDrivenKeyframe -cd $rrelax -dv 10 -v -20 ($lrn+"ring3_rigrot.rz");			
+				//小指
+				setDrivenKeyframe -cd $prelax -dv 10 -v 0 ($lrn+"pinky1_rigrot.rx");
+				setDrivenKeyframe -cd $prelax -dv 10 -v 0 ($lrn+"pinky1_rigrot.ry");
+				setDrivenKeyframe -cd $prelax -dv 10 -v -20 ($lrn+"pinky1_rigrot.rz");
+				setDrivenKeyframe -cd $prelax -dv 10 -v -20 ($lrn+"pinky2_rigrot.rz");
+				setDrivenKeyframe -cd $prelax -dv 10 -v -20 ($lrn+"pinky3_rigrot.rz");	
+
+
+				//●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●【　スプレッド　】●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
+				//親指
+				setDrivenKeyframe -cd $tspread -dv 10 -v 15 ($lrn+"thumb1_rigrot.rx");
+				setDrivenKeyframe -cd $tspread -dv 10 -v 5 ($lrn+"thumb1_rigrot.ry");
+				setDrivenKeyframe -cd $tspread -dv 10 -v -10 ($lrn+"thumb1_rigrot.rz");
+				setDrivenKeyframe -cd $tspread -dv 10 -v -5 ($lrn+"thumb2_rigrot.rz");	
+				setDrivenKeyframe -cd $tspread -dv 10 -v -5 ($lrn+"thumb3_rigrot.rz");
+				//人差し指
+				setDrivenKeyframe -cd $ispread -dv 10 -v 14 ($lrn+"index1_rigrot.rx");
+				setDrivenKeyframe -cd $ispread -dv 10 -v 0 ($lrn+"index1_rigrot.ry");
+				setDrivenKeyframe -cd $ispread -dv 10 -v 0 ($lrn+"index1_rigrot.rz");
+				setDrivenKeyframe -cd $ispread -dv 10 -v 5 ($lrn+"index2_rigrot.rz");		
+				setDrivenKeyframe -cd $ispread -dv 10 -v 5 ($lrn+"index3_rigrot.rz");				
+				//中指
+				setDrivenKeyframe -cd $mspread -dv 10 -v 2 ($lrn+"middle1_rigrot.rx");
+				setDrivenKeyframe -cd $mspread -dv 10 -v 0 ($lrn+"middle1_rigrot.ry");
+				setDrivenKeyframe -cd $mspread -dv 10 -v 0 ($lrn+"middle1_rigrot.rz");
+				setDrivenKeyframe -cd $mspread -dv 10 -v 5 ($lrn+"middle2_rigrot.rz");
+				setDrivenKeyframe -cd $mspread -dv 10 -v 5 ($lrn+"middle3_rigrot.rz");				
+				//薬指
+				setDrivenKeyframe -cd $rspread -dv 10 -v -10 ($lrn+"ring1_rigrot.rx");
+				setDrivenKeyframe -cd $rspread -dv 10 -v 0 ($lrn+"ring1_rigrot.ry");
+				setDrivenKeyframe -cd $rspread -dv 10 -v 0 ($lrn+"ring1_rigrot.rz");
+				setDrivenKeyframe -cd $rspread -dv 10 -v 5 ($lrn+"ring2_rigrot.rz");
+				setDrivenKeyframe -cd $rspread -dv 10 -v 5 ($lrn+"ring3_rigrot.rz");			
+				//小指
+				setDrivenKeyframe -cd $pspread -dv 10 -v -22 ($lrn+"pinky1_rigrot.rx");
+				setDrivenKeyframe -cd $pspread -dv 10 -v 0 ($lrn+"pinky1_rigrot.ry");
+				setDrivenKeyframe -cd $pspread -dv 10 -v 0 ($lrn+"pinky1_rigrot.rz");
+				setDrivenKeyframe -cd $pspread -dv 10 -v 5 ($lrn+"pinky2_rigrot.rz");
+				setDrivenKeyframe -cd $pspread -dv 10 -v 5  ($lrn+"pinky3_rigrot.rz");
+				
+				
+				//●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●【　マイク　】●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
+				//親指
+				setDrivenKeyframe -cd $tmic -dv 10 -v -12 ($lrn+"thumb1_rigrot.rx");
+				setDrivenKeyframe -cd $tmic -dv 10 -v -10 ($lrn+"thumb1_rigrot.ry");
+				setDrivenKeyframe -cd $tmic -dv 10 -v 30 ($lrn+"thumb1_rigrot.rz");
+				setDrivenKeyframe -cd $tmic -dv 10 -v 60 ($lrn+"thumb2_rigrot.rz");	
+				setDrivenKeyframe -cd $tmic -dv 10 -v 70 ($lrn+"thumb3_rigrot.rz");
+				//人差し指
+				setDrivenKeyframe -cd $imic -dv 10 -v -6 ($lrn+"index1_rigrot.rx");
+				setDrivenKeyframe -cd $imic -dv 10 -v 6 ($lrn+"index1_rigrot.ry");
+				setDrivenKeyframe -cd $imic -dv 10 -v -70 ($lrn+"index1_rigrot.rz");
+				setDrivenKeyframe -cd $imic -dv 10 -v -60 ($lrn+"index2_rigrot.rz");		
+				setDrivenKeyframe -cd $imic -dv 10 -v -50 ($lrn+"index3_rigrot.rz");				
+				//中指
+				setDrivenKeyframe -cd $mmic -dv 10 -v 0 ($lrn+"middle1_rigrot.rx");
+				setDrivenKeyframe -cd $mmic -dv 10 -v 0 ($lrn+"middle1_rigrot.ry");
+				setDrivenKeyframe -cd $mmic -dv 10 -v -70 ($lrn+"middle1_rigrot.rz");
+				setDrivenKeyframe -cd $mmic -dv 10 -v -70 ($lrn+"middle2_rigrot.rz");
+				setDrivenKeyframe -cd $mmic -dv 10 -v -60 ($lrn+"middle3_rigrot.rz");				
+				//薬指
+				setDrivenKeyframe -cd $rmic -dv 10 -v 5 ($lrn+"ring1_rigrot.rx");
+				setDrivenKeyframe -cd $rmic -dv 10 -v -5 ($lrn+"ring1_rigrot.ry");
+				setDrivenKeyframe -cd $rmic -dv 10 -v -70 ($lrn+"ring1_rigrot.rz");
+				setDrivenKeyframe -cd $rmic -dv 10 -v -75 ($lrn+"ring2_rigrot.rz");
+				setDrivenKeyframe -cd $rmic -dv 10 -v -35 ($lrn+"ring3_rigrot.rz");			
+				//小指
+				setDrivenKeyframe -cd $pmic -dv 10 -v 12 ($lrn+"pinky1_rigrot.rx");
+				setDrivenKeyframe -cd $pmic -dv 10 -v -12 ($lrn+"pinky1_rigrot.ry");
+				setDrivenKeyframe -cd $pmic -dv 10 -v -72 ($lrn+"pinky1_rigrot.rz");
+				setDrivenKeyframe -cd $pmic -dv 10 -v -60 ($lrn+"pinky2_rigrot.rz");
+				setDrivenKeyframe -cd $pmic -dv 10 -v -30  ($lrn+"pinky3_rigrot.rz");
+		}		
+		
+		
+		//●●●●●●●●●●ユーティリティーノード作成＆接続●●●●●●●●●
+		$mldv=("multiplyDivide_"+$lrn+"Finger");
+		$revs=("reverse_"+$lrn+"Finger");
+		$condmc=("condition_"+$lrn+"mcFinger");
+		$condrig=("condition_"+$lrn+"rigFinger");
+
+		shadingNode -asUtility multiplyDivide -n $mldv;
+		shadingNode -asUtility reverse -n $revs;
+		shadingNode -asUtility condition -n $condmc;
+		shadingNode -asUtility condition -n $condrig;
+		
+		setAttr ($mldv+".operation") 2;
+		setAttr ($mldv+".input2X") 10;
+		setAttr ($mldv+".input2Y") 10;
+		setAttr ($mldv+".input2Z") 10;
+		
+		setAttr ($condmc+".secondTerm") 1;
+		
+		connectAttr -f $subAB ($mldv+".input1X");
+		connectAttr -f ($mldv+".outputX") ($revs+".inputX");
+		
+	
+		connectAttr -f ($mldv+".outputX") ($condmc+".firstTerm");
+		connectAttr -f ($mldv+".outputX") ($condrig+".firstTerm");
+		
+		connectAttr -f ($condmc+".outColorR") ($lrn+"thumb1_mcp.v");
+		connectAttr -f ($condmc+".outColorR") ($lrn+"index1_mcp.v");
+		connectAttr -f ($condmc+".outColorR") ($lrn+"middle1_mcp.v");
+		connectAttr -f ($condmc+".outColorR") ($lrn+"ring1_mcp.v");
+		connectAttr -f ($condmc+".outColorR") ($lrn+"pinky1_mcp.v");
+		
+		connectAttr -f ($condrig+".outColorR") ($lrn+"thumb1_rig.v");
+		connectAttr -f ($condrig+".outColorR") ($lrn+"index1_rig.v");
+		connectAttr -f ($condrig+".outColorR") ($lrn+"middle1_rig.v");
+		connectAttr -f ($condrig+".outColorR") ($lrn+"ring1_rig.v");
+		connectAttr -f ($condrig+".outColorR") ($lrn+"pinky1_rig.v");
+		
+
+
+		for($an in $anames)
+		{
+			$orcR=($lrn+$an+"_null_orientConstraint1."+$lrn+$an+"_rigrotW0");
+			$orcM=($lrn+$an+"_null_orientConstraint1."+$lrn+$an+"_mctrlW1");
+			connectAttr -f ($mldv+".outputX") $orcR;
+			connectAttr -f ($revs+".outputX") $orcM;
+		}	
+	}
+	
+}
+
+
+
+//■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+//指CTRL部分を一時的に削除（DELTA専用）
+global proc DeltaFingerRigDelete()
+{
+	deleteAttr -attribute "finger_mctrl_to_rig" "L_sub_ctrl";
+	deleteAttr -attribute "finger_mctrl_to_rig" "R_sub_ctrl";
+	deleteAttr -attribute "thumb_Grip" "L_sub_ctrl";
+	deleteAttr -attribute "thumb_Grip" "R_sub_ctrl";
+	deleteAttr -attribute "index_Grip" "L_sub_ctrl";
+	deleteAttr -attribute "index_Grip" "R_sub_ctrl";
+	deleteAttr -attribute "middle_Grip" "L_sub_ctrl";
+	deleteAttr -attribute "middle_Grip" "R_sub_ctrl";
+	deleteAttr -attribute "ring_Grip" "L_sub_ctrl";
+	deleteAttr -attribute "ring_Grip" "R_sub_ctrl";
+	deleteAttr -attribute "pinky_Grip" "L_sub_ctrl";
+	deleteAttr -attribute "pinky_Grip" "R_sub_ctrl";
+	deleteAttr -attribute "thumb_Curl" "L_sub_ctrl";
+	deleteAttr -attribute "thumb_Curl" "R_sub_ctrl";
+	deleteAttr -attribute "index_Curl" "L_sub_ctrl";
+	deleteAttr -attribute "index_Curl" "R_sub_ctrl";
+	deleteAttr -attribute "middle_Curl" "L_sub_ctrl";
+	deleteAttr -attribute "middle_Curl" "R_sub_ctrl";
+	deleteAttr -attribute "ring_Curl" "L_sub_ctrl";
+	deleteAttr -attribute "ring_Curl" "R_sub_ctrl";
+	deleteAttr -attribute "pinky_Curl" "L_sub_ctrl";
+	deleteAttr -attribute "pinky_Curl" "R_sub_ctrl";
+	deleteAttr -attribute "thumb_Relax" "L_sub_ctrl";
+	deleteAttr -attribute "thumb_Relax" "R_sub_ctrl";
+	deleteAttr -attribute "index_Relax" "L_sub_ctrl";
+	deleteAttr -attribute "index_Relax" "R_sub_ctrl";
+	deleteAttr -attribute "middle_Relax" "L_sub_ctrl";
+	deleteAttr -attribute "middle_Relax" "R_sub_ctrl";
+	deleteAttr -attribute "ring_Relax" "L_sub_ctrl";
+	deleteAttr -attribute "ring_Relax" "R_sub_ctrl";
+	deleteAttr -attribute "pinky_Relax" "L_sub_ctrl";
+	deleteAttr -attribute "pinky_Relax" "R_sub_ctrl";
+	deleteAttr -attribute "thumb_Spread" "L_sub_ctrl";
+	deleteAttr -attribute "thumb_Spread" "R_sub_ctrl";
+	deleteAttr -attribute "index_Spread" "L_sub_ctrl";
+	deleteAttr -attribute "index_Spread" "R_sub_ctrl";
+	deleteAttr -attribute "middle_Spread" "L_sub_ctrl";
+	deleteAttr -attribute "middle_Spread" "R_sub_ctrl";
+	deleteAttr -attribute "ring_Spread" "L_sub_ctrl";
+	deleteAttr -attribute "ring_Spread" "R_sub_ctrl";
+	deleteAttr -attribute "pinky_Spread" "L_sub_ctrl";
+	deleteAttr -attribute "pinky_Spread" "R_sub_ctrl";
+	
+	delete r_thumb1_rig r_thumb1_mcp r_index1_rig r_index1_mcp r_middle1_rig r_middle1_mcp r_ring1_rig r_ring1_mcp r_pinky1_rig r_pinky1_mcp ;
+	delete l_thumb1_rig l_thumb1_mcp l_index1_rig l_index1_mcp l_middle1_rig l_middle1_mcp l_ring1_rig l_ring1_mcp l_pinky1_rig l_pinky1_mcp ;
+	delete multiplyDivide_l_Finger multiplyDivide_r_Finger reverse_l_Finger reverse_r_Finger ;
+	$dels=`ls "condition_r_mcFinger" "condition_r_rigFinger" "condition_l_mcFinger" "condition_l_rigFinger"`;
+	if(size($dels)>0)
+	{
+		delete $dels;
+	}
+}
+
+
+
+//■■■■■　コントローラー初期設定　■■■■■
+global proc DeltaCtrlDefault()
+{
+	setAttr "All_ctrl.All_scale" 50;
+	setAttr "All_ctrl.hips_scale" 10;
+	setAttr "All_ctrl.spine_scale" 14;
+	setAttr "All_ctrl.spine1_scale" 12;
+	setAttr "All_ctrl.neck_scale" 12;
+	setAttr "All_ctrl.head_scale" 20;
+	setAttr "All_ctrl.sub_scale" 9;
+	setAttr "All_ctrl.l_shoulder_scale" 10;
+	setAttr "All_ctrl.r_shoulder_scale" 10;
+	setAttr "All_ctrl.r_armIK_scale" 3;
+	setAttr "All_ctrl.l_armIK_scale" 3;
+	setAttr "All_ctrl.l_armPV_scale" 8;
+	setAttr "All_ctrl.r_armPV_scale" 8;
+	setAttr "All_ctrl.l_armPV_Z" -50;
+	setAttr "All_ctrl.r_armPV_Z" -50;
+	setAttr "All_ctrl.r_arm_FK_scale" 5;
+	setAttr "All_ctrl.l_arm_FK_scale" 5;
+	setAttr "All_ctrl.r_forearm_FK_scale" 5;
+	setAttr "All_ctrl.l_forearm_FK_scale" 5;
+	setAttr "All_ctrl.r_hand_scale" 8;
+	setAttr "All_ctrl.l_hand_scale" 8;
+	setAttr "All_ctrl.r_footIK1_scale" 9;
+	setAttr "All_ctrl.l_footIK1_scale" 9;
+	setAttr "All_ctrl.r_footIK2_scale" 9;
+	setAttr "All_ctrl.l_footIK2_scale" 9;
+	setAttr "All_ctrl.r_footIK3_scale" 9;
+	setAttr "All_ctrl.l_footIK3_scale" 9;
+	setAttr "All_ctrl.r_footPV_scale" 8;
+	setAttr "All_ctrl.l_footPV_scale" 8;
+	setAttr "All_ctrl.r_footPV_Z" 50;
+	setAttr "All_ctrl.l_footPV_Z" 50;
+	setAttr "All_ctrl.r_upleg_FK_scale" 14;
+	setAttr "All_ctrl.l_upleg_FK_scale" 14;
+	setAttr "All_ctrl.r_leg_FK_scale" 14;
+	setAttr "All_ctrl.l_leg_FK_scale" 14;
+	setAttr "All_ctrl.r_foot_FK_scale" 8;
+	setAttr "All_ctrl.l_foot_FK_scale" 8;
+	setAttr "All_ctrl.r_toebase_FK_scale" 8;
+	setAttr "All_ctrl.l_toebase_FK_scale" 8;
+	
+	
+	//ロック＆ハイド
+	setAttr -lock true -keyable false -channelBox false "R_sub_ctrl.tx";
+	setAttr -lock true -keyable false -channelBox false "R_sub_ctrl.ty";
+	setAttr -lock true -keyable false -channelBox false "R_sub_ctrl.tz";
+	setAttr -lock true -keyable false -channelBox false "R_sub_ctrl.sx";
+	setAttr -lock true -keyable false -channelBox false "R_sub_ctrl.sy";
+	setAttr -lock true -keyable false -channelBox false "R_sub_ctrl.sz";
+	setAttr -lock true -keyable false -channelBox false "L_sub_ctrl.tx";
+	setAttr -lock true -keyable false -channelBox false "L_sub_ctrl.ty";
+	setAttr -lock true -keyable false -channelBox false "L_sub_ctrl.tz";
+	setAttr -lock true -keyable false -channelBox false "L_sub_ctrl.sx";
+	setAttr -lock true -keyable false -channelBox false "L_sub_ctrl.sy";
+	setAttr -lock true -keyable false -channelBox false "L_sub_ctrl.sz";
+	
+	
+	setAttr -lock true -keyable false -channelBox false "All_ctrl.All_scale";
+	setAttr -lock true -keyable false -channelBox false "All_ctrl.hips_scale";
+	setAttr -lock true -keyable false -channelBox false "All_ctrl.spine_scale";
+	setAttr -lock true -keyable false -channelBox false "All_ctrl.spine1_scale";
+	setAttr -lock true -keyable false -channelBox false "All_ctrl.neck_scale";
+	setAttr -lock true -keyable false -channelBox false "All_ctrl.head_scale";
+	setAttr -lock true -keyable false -channelBox false "All_ctrl.sub_scale";
+	setAttr -lock true -keyable false -channelBox false "All_ctrl.r_shoulder_scale";
+	setAttr -lock true -keyable false -channelBox false "All_ctrl.l_shoulder_scale";
+	setAttr -lock true -keyable false -channelBox false "All_ctrl.r_armIK_scale";
+	setAttr -lock true -keyable false -channelBox false "All_ctrl.l_armIK_scale";
+	setAttr -lock true -keyable false -channelBox false "All_ctrl.r_armPV_scale";
+	setAttr -lock true -keyable false -channelBox false "All_ctrl.l_armPV_scale";
+	setAttr -lock true -keyable false -channelBox false "All_ctrl.r_armPV_Z";
+	setAttr -lock true -keyable false -channelBox false "All_ctrl.l_armPV_Z";
+	setAttr -lock true -keyable false -channelBox false "All_ctrl.r_arm_FK_scale";
+	setAttr -lock true -keyable false -channelBox false "All_ctrl.l_arm_FK_scale";
+	setAttr -lock true -keyable false -channelBox false "All_ctrl.r_forearm_FK_scale";
+	setAttr -lock true -keyable false -channelBox false "All_ctrl.l_forearm_FK_scale";
+	setAttr -lock true -keyable false -channelBox false "All_ctrl.r_hand_scale";
+	setAttr -lock true -keyable false -channelBox false "All_ctrl.l_hand_scale";
+	setAttr -lock true -keyable false -channelBox false "All_ctrl.r_footIK1_scale";
+	setAttr -lock true -keyable false -channelBox false "All_ctrl.l_footIK1_scale";
+	setAttr -lock true -keyable false -channelBox false "All_ctrl.r_footIK2_scale";
+	setAttr -lock true -keyable false -channelBox false "All_ctrl.l_footIK2_scale";
+	setAttr -lock true -keyable false -channelBox false "All_ctrl.r_footIK3_scale";
+	setAttr -lock true -keyable false -channelBox false "All_ctrl.l_footIK3_scale";
+	setAttr -lock true -keyable false -channelBox false "All_ctrl.r_footPV_scale";
+	setAttr -lock true -keyable false -channelBox false "All_ctrl.l_footPV_scale";
+	setAttr -lock true -keyable false -channelBox false "All_ctrl.r_footPV_Z";
+	setAttr -lock true -keyable false -channelBox false "All_ctrl.l_footPV_Z";
+	setAttr -lock true -keyable false -channelBox false "All_ctrl.r_upleg_FK_scale";
+	setAttr -lock true -keyable false -channelBox false "All_ctrl.l_upleg_FK_scale";
+	setAttr -lock true -keyable false -channelBox false "All_ctrl.r_leg_FK_scale";
+	setAttr -lock true -keyable false -channelBox false "All_ctrl.l_leg_FK_scale";
+	setAttr -lock true -keyable false -channelBox false "All_ctrl.r_foot_FK_scale";
+	setAttr -lock true -keyable false -channelBox false "All_ctrl.l_foot_FK_scale";
+	setAttr -lock true -keyable false -channelBox false "All_ctrl.r_toebase_FK_scale";
+	setAttr -lock true -keyable false -channelBox false "All_ctrl.l_toebase_FK_scale";
+	
+	
+	//●●●●●●●●●●指変数宣言●●●●●●●●●
+	string $rls[]={"r_","l_"};
+	string $thumbs[]={"thumb1","thumb2","thumb3"};
+	string $fingers[]={"index1","index2","index3","middle1","middle2","middle3","ring1","ring2","ring3","pinky1","pinky2","pinky3"};
+	string $mnc;
+	
+	//●●●●●●●●●●指コントローラーサイズ初期設定●●●●●●●●●
+	for($d in $rls)
+	{
+		//●●●●●●●●●●親指処理●●●●●●●●●
+		for($i=0; $i<3; $i++)
+		{
+			string $finc=($d+$thumbs[$i]+"_ctrl");
+			string $lhs[]=`listHistory $finc`;
+			for ($n in $lhs)
+			{
+				string $result=`gmatch $n "makeNurbCircle*"`;
+				if($result==1)
+				{
+					$mnc=$n;
+				}
+			}
+			if($i==0)
+			{
+				setAttr ($mnc+".radius") 1.6;
+			}
+			else if($i==1)
+			{
+				setAttr ($mnc+".radius") 1.2;
+			}
+			else
+			{
+				setAttr ($mnc+".radius") 0.8;		
+			}
+		}
+		
+		//●●●●●●●●●●その他の指の処理●●●●●●●●●
+		for($fin in $fingers)
+		{
+			string $finc=($d+$fin+"_ctrl");
+			string $finnum=`endString $fin "1"`;
+			
+			string $lhs[]=`listHistory $finc`;
+			
+			for ($n in $lhs)
+			{
+				string $result=`gmatch $n "makeNurbCircle*"`;
+				if($result==1)
+				{
+					$mnc=$n;
+				}
+			}
+			if($finnum==1)
+			{
+				setAttr ($mnc+".radius") 0.9;
+			}
+			else if($finnum==2)
+			{
+				setAttr ($mnc+".radius") 0.7;
+			}
+			else
+			{
+				setAttr ($mnc+".radius") 0.5;			
+			}
+		}
+	}
+}
+
+
+
+//■■■■■　顔ノードベイク処理　■■■■■
+global proc DeltaModelFaceBake()
+{
+	string $bshape[]={"eyebrow","upper","lower"};
+	string $eyeloc[]={"Ex_EyePu_R","Ex_EyePu_L","Ex_EyeHi_R","Ex_EyeHi_L"};
+	float $ast=`playbackOptions -q -min`;
+	float $aet=`playbackOptions -q -max`;
+	
+	
+	//●●●●●●●●●●ブレンドシェイプをベイク●●●●●●●●●●
+	for($i=0; $i<3; $i++)
+	{
+		$facial=`listAttr -m -st "weight" $bshape[$i]`;
+		$fat=stringArrayToString($facial ," -at ");
+		string $bt=("bakeResults -sm true -t \""+$ast+":"+$aet+"\" -sb 1 -dic true -pok true -sac false -ral false -bol false -mr true -at "+$fat+" "+$bshape[$i]+";");
+		eval $bt;
+	}
+	
+	//●●●●●●●●●●eyeノードをベイク●●●●●●●●●●
+	bakeResults -sm true -t ($ast+":"+$aet)  -sb 1 -dic true -pok true -sac false -ral false -bol false -mr true -at "tx" -at "ty" -at "tz" -at "rx" -at "ry" -at "rz" -at "sx" -at "sy" -at "sz" $eyeloc;
+	
+	//●●●●●●●●●●不要ノード削除●●●●●●●●●●
+	delete Face_ctrlG;
+	delete "multiplyDivide_*";
+   	//hyperShadePanelMenuCommand("hyperShadePanel1", "deleteUnusedNodes");
+}
+
+
+
+//■■■■■　身体ベイク処理　■■■■■
+global proc DeltaModelBaseJointBake()
+{
+	string $trans[]={"root"};
+	string $rot[]={"hips","spine","spine1","neck","head",
+	"l_shoulder","l_arm","l_forearm","l_hand","l_forearmroll","l_armroll","l_elbowroll",
+	"r_shoulder","r_arm","r_forearm","r_hand","r_forearmroll","r_armroll","r_elbowroll",
+	"r_handindex1","r_handindex2","r_handindex3","r_handmiddle1","r_handmiddle2","r_handmiddle3","r_handring1","r_handring2","r_handring3",
+	"r_handpinky1","r_handpinky2","r_handpinky3","r_handthumb1","r_handthumb2","r_handthumb3",
+	"l_handindex1","l_handindex2","l_handindex3","l_handmiddle1","l_handmiddle2","l_handmiddle3","l_handring1","l_handring2","l_handring3",
+	"l_handpinky1","l_handpinky2","l_handpinky3","l_handthumb1","l_handthumb2","l_handthumb3",
+	"r_upleg","r_leg","r_foot","r_toebase","l_upleg","l_leg","l_foot","l_toebase"};
+	
+	string $tandr[]=stringArrayCatenate($trans,$rot);
+	
+	float $ast=`playbackOptions -q -min`;
+	float $aet=`playbackOptions -q -max`;
+	
+	
+	bakeResults -sm true -t ($ast+":"+$aet)  -sb 1 -dic true -pok true -sac false -ral false -bol false -mr true -at "tx" -at "ty" -at "tz" -at "rx" -at "ry" -at "rz" $tandr;
+	
+	currentTime 0 ;
+	cutKey -cl -t ":" -f ":" -at "rx"  -at "ry" -at "rz" $trans;
+	cutKey -cl -t ":" -f ":" -at "tx"  -at "ty" -at "tz" $rot;
+	
+	for($n in $rot)
+	{
+		$rxc=($n+"_rotateX");
+		$ryc=($n+"_rotateY");
+		$rzc=($n+"_rotateZ");
+		filterCurve $rxc $ryc $rzc;
+	}	
+	
+	//●●●●●●●●●●不要ノード削除●●●●●●●●●●
+	$delObj=`ls "ctrl_reference" "All_ctrl" "mcap_reference" "base_reference"`;
+	delete $delObj;
+	delete "multiplyDivide_*";
+	
+	$cond=`ls "condition_*"`;
+	if(size($cond)>0)
+	{
+		delete "condition_*";
+	}
+	
+	$div=`ls "*_Divide"`;
+	if(size($div)>0)
+	{
+		delete "*_Divide";
+	}
+	
+	$rev=`ls "reverse_*"`;
+	if(size($rev)>0)
+	{
+		delete "reverse_*";
+	}
+   	//hyperShadePanelMenuCommand("hyperShadePanel1", "deleteUnusedNodes");
+}
+
+
+//■■■■■　コントローラーベイク処理　■■■■■
+global proc DeltaModelCtrlBake()
+{
+	string $trans[]={"hips_ctrl","r_armIK_ctrl","l_armIK_ctrl",
+	"r_armPV_ctrl","l_armPV_ctrl","r_footIK1_ctrl","l_footIK1_ctrl","r_footPV_ctrl","l_footPV_ctrl"};
+	
+	string $rot[]={"hips_ctrl","spine_ctrl","spine1_ctrl","neck_ctrl","head_ctrl",
+	"l_shoulder_ctrl","l_hand_ctrl","l_footIK1_ctrl","l_footIK3_ctrl",
+	"r_shoulder_ctrl","r_hand_ctrl","r_footIK1_ctrl","r_footIK3_ctrl",
+	"r_thumb1_mcp","r_thumb2_mcp","r_thumb3_mcp","r_index1_mcp","r_index2_mcp","r_index3_mcp","r_middle1_mcp","r_middle2_mcp","r_middle3_mcp",
+	"r_ring1_mcp","r_ring2_mcp","r_ring3_mcp","r_pinky1_mcp","r_pinky2_mcp","r_pinky3_mcp",
+	"l_thumb1_mcp","l_thumb2_mcp","l_thumb3_mcp","l_index1_mcp","l_index2_mcp","l_index3_mcp","l_middle1_mcp","l_middle2_mcp","l_middle3_mcp",
+	"l_ring1_mcp","l_ring2_mcp","l_ring3_mcp","l_pinky1_mcp","l_pinky2_mcp","l_pinky3_mcp"};
+
+
+	float $ast=`playbackOptions -q -min`;
+	float $aet=`playbackOptions -q -max`;
+	
+	
+	bakeResults -sm true -t ($ast+":"+$aet)  -sb 1 -dic true -pok true -sac false -ral false -bol false -mr true -at "tx" -at "ty" -at "tz" $trans;
+
+	bakeResults -sm true -t ($ast+":"+$aet)  -sb 1 -dic true -pok true -sac false -ral false -bol false -mr true -at "rx" -at "ry" -at "rz" $rot;
+	
+	
+	//●●●●●●●●●●不要ノード削除●●●●●●●●●●
+	select $trans;
+	select -add $rot;
+	$del=`listRelatives -c -typ "constraint"`;
+	delete $del;
+	select -cl;
+}
+
+//■■■■■　足コントローラーベイク処理　■■■■■
+global proc DeltaModelFootCtrlBake()
+{
+	string $trans[]={"r_footIK1_ctrl","l_footIK1_ctrl","r_footPV_ctrl","l_footPV_ctrl"};
+	
+	string $rot[]={"l_footIK1_ctrl","l_footIK3_ctrl","r_footIK1_ctrl","r_footIK3_ctrl"};
+
+
+	float $ast=`playbackOptions -q -min`;
+	float $aet=`playbackOptions -q -max`;
+	
+	
+	bakeResults -sm true -t ($ast+":"+$aet)  -sb 1 -dic true -pok true -sac false -ral false -bol false -mr true -at "tx" -at "ty" -at "tz" $trans;
+
+	bakeResults -sm true -t ($ast+":"+$aet)  -sb 1 -dic true -pok true -sac false -ral false -bol false -mr true -at "rx" -at "ry" -at "rz" $rot;
+	
+	
+	//●●●●●●●●●●不要ノード削除●●●●●●●●●●
+	select $trans;
+	select -add $rot;
+	$del=`listRelatives -c -typ "constraint"`;
+	delete $del;
+	select -cl;
+	
+	//●●●●●●●●●●アニメレイヤー追加●●●●●●●●●●
+		select "r_footIK1_ctrl" "l_footIK1_ctrl" "r_footIK2_ctrl" "l_footIK2_ctrl" "r_footIK3_ctrl" "l_footIK3_ctrl" "r_footPV_ctrl" "l_footPV_ctrl";
+		animLayer -aso FootLayer1;
+}
+
+
+//■■■■■　衣装ベイク処理　■■■■■　
+global proc DeltaClothBake()
+{
+	//●●●●●●●●●●　ウィンドウ　●●●●●●●●●●
+	string $result=`confirmDialog -title "DeltaClothBake" -message "Which is BakeJoint?"
+    -button "RigJoint" -button "ReferenceJoint" -button "Cancel" -defaultButton "RigJoint"
+    -cancelButton "No" -dismissString "No"`;
+	
+	string $cloth[];
+	
+	if ($result == "RigJoint")
+	{
+		$clothes=`ls -typ "joint" "*_BakeJ"`;
+		$end=`ls -typ "joint" "*_end_BakeJ"`;
+		$cloth=stringArrayRemove($end,$clothes);
+
+		float $ast=`playbackOptions -q -min`;
+		float $aet=`playbackOptions -q -max`;
+		
+		
+		bakeResults -sm true -t ($ast+":"+$aet)  -sb 1 -dic true -pok true -sac false -ral false -bol false -mr true -at "rx" -at "ry" -at "rz" $cloth;
+
+		for($n in $cloth)
+		{
+			$rxc=($n+"_rotateX");
+			$ryc=($n+"_rotateY");
+			$rzc=($n+"_rotateZ");
+			filterCurve $rxc $ryc $rzc;
+		}
+		
+		//●●●●●●●●●●不要ノード削除●●●●●●●●●●
+		$delObj=`ls "*_PhisicsCtrl" "*_PhisicsG" "*SPIKJointG" "*FKJointG"`;
+		delete $delObj;
+		
+		//●●●●●●●●●●アニメレイヤー追加●●●●●●●●●●
+		select "*_BakeJ";
+		animLayer -aso AnimLayer1;
+	}
+	else if($result == "ReferenceJoint")
+	{
+		$clothes=`ls -typ "joint" "mphys_*"`;
+		$end=`ls -typ "joint" "mphys_*_end"`;
+		$cloth=stringArrayRemove($end,$clothes);
+
+		float $ast=`playbackOptions -q -min`;
+		float $aet=`playbackOptions -q -max`;
+		
+		
+		bakeResults -sm true -t ($ast+":"+$aet)  -sb 1 -dic true -pok true -sac false -ral false -bol false -mr true -at "rx" -at "ry" -at "rz" $cloth;
+		
+		for($n in $cloth)
+		{
+			$rxc=($n+"_rotateX");
+			$ryc=($n+"_rotateY");
+			$rzc=($n+"_rotateZ");
+			filterCurve $rxc $ryc $rzc;
+		}	
+		
+		//●●●●●●●●●●不要ノード削除●●●●●●●●●●
+		$delObj=`ls "*_PhisicsCtrlG" "*_PhisicsG"`;
+		delete $delObj;
+		hyperShadePanelMenuCommand("hyperShadePanel1", "deleteUnusedNodes");
+	}
+}
+
+
+
+
+//■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+//指部分のコントローラースケール
+global proc DeltaFingerCtrlScale()
+{	
+	string $lrn,$t1n,$t2n,$t3n,$fin;
+	string $lrnames[]={"l_","r_"};
+	$t1="thumb1_ctrl";
+	$t2="thumb2_ctrl";
+	$t3="thumb3_ctrl";
+	string $finger[]={"index1","index2","index3","middle1","middle2","middle3","ring1","ring2","ring3","pinky1","pinky2","pinky3"};
+	
+	for($lrn in $lrnames)
+	{	
+		string $t1g[]=`listHistory ($lrn+$t1)`;
+		for($t1n in $t1g)
+		{
+			$result=`gmatch $t1n "make*"`;
+			if($result==1)
+			{
+				setAttr ($t1n+".radius") 1.6;
+			}
+		}
+		
+		string $t2g[]=`listHistory ($lrn+$t2)`;
+		for($t2n in $t2g)
+		{
+			$result=`gmatch $t2n "make*"`;
+			if($result==1)
+			{
+				setAttr ($t2n+".radius") 1;
+			}
+		}
+		
+		string $t3g[]=`listHistory ($lrn+$t3)`;
+		for($t3n in $t3g)
+		{
+			$result=`gmatch $t3n "make*"`;
+			if($result==1)
+			{
+				setAttr ($t3n+".radius") 0.8;
+			}
+		}
+		
+		for($fin in $finger)
+		{
+			$ctrl=($lrn+$fin+"_ctrl");
+			string $his[]=`listHistory $ctrl`;
+			
+			
+			for($n in $his)
+			{
+				$result=`gmatch $n "make*"`;
+				
+				if($result==1)
+				{	
+					$numA=`gmatch $ctrl "*1_ctrl"`;
+					$numB=`gmatch $ctrl "*2_ctrl"`;
+					
+					if($numA==1)
+					{
+						setAttr ($n+".radius") 0.8;
+					}
+					else if($numB==1)
+					{
+						setAttr ($n+".radius") 0.6;
+					}
+					else
+					{
+						setAttr ($n+".radius") 0.5;					
+					}
+				}
+			}		
+		}
+	}
+}
+
+
+
+
+//■■■■■　手ポーズコピー　■■■■■
+global proc DeltaFingerValueCopy()
+{
+	//●●●●●●●●●●変数宣言●●●●●●●●●●
+	string $anames[];
+	$anames ={"thumb1","thumb2","thumb3","index1","index2","index3",
+			"middle1","middle2","middle3","ring1","ring2","ring3","pinky1","pinky2","pinky3"};
+	string $lrn;
+	string $lrnames[]={"l_","r_"};
+	float $rvx,$rvy,$rvz,$lvx,$lvy,$lvz,$rfinValue[],$lfinValue[];
+	
+	
+	
+	int $selected;
+
+	$selected =`radioButtonGrp -q -sl radioButtonGrp1`;
+
+	if($selected == 1)
+	{
+		//●●●●●●●●●●右手指⇒左手指●●●●●●●●●●
+		for($an in $anames)
+		{
+			$rfin=($lrnames[1]+$an+"_rigrot"); 
+			$lfin=($lrnames[0]+$an+"_rigrot");
+			
+			$fin=`gmatch $an "thumb*"`;
+			
+			
+			//●●●●●●●●●●親指の対応●●●●●●●●●●
+			if($fin==1)
+			{
+				$rfinValue=`getAttr ($rfin+".rotate")`;
+				$rvx= -$rfinValue[0];
+				$rvy= -$rfinValue[1];
+				$rvz=  $rfinValue[2];
+				
+				$tfin=endString($an,1);
+				if($tfin==1)
+				{
+					setAttr ($lfin+".rx") $rvx;
+					setAttr ($lfin+".ry") $rvy;
+					setAttr ($lfin+".rz") $rvz;
+				}
+				else
+				{
+					setAttr ($lfin+".rz") $rvz;
+				}
+			}
+			//●●●●●●●●●●その他の指対応●●●●●●●●●●		
+			else
+			{
+				$rfinValue=`getAttr ($rfin+".rotate")`;
+				$rvx=  $rfinValue[0];
+				$rvy= -$rfinValue[1];
+				$rvz= -$rfinValue[2];
+				
+				$tfin=endString($an,1);
+				if($tfin==1)
+				{
+					setAttr ($lfin+".rx") $rvx;
+					setAttr ($lfin+".ry") $rvy;
+					setAttr ($lfin+".rz") $rvz;
+				}
+				else
+				{
+					setAttr ($lfin+".rz") $rvz;
+				}
+			}
+		}
+	}
+	else if($selected == 2)
+	{
+		//●●●●●●●●●●左手指⇒右手指●●●●●●●●●●
+		for($an in $anames)
+		{
+			$rfin=($lrnames[1]+$an+"_rigrot"); 
+			$lfin=($lrnames[0]+$an+"_rigrot");
+			
+			$fin=`gmatch $an "thumb*"`;
+			
+			
+			//●●●●●●●●●●親指の対応●●●●●●●●●●
+			if($fin==1)
+			{
+				$lfinValue=`getAttr ($lfin+".rotate")`;
+				$lvx= -$lfinValue[0];
+				$lvy= -$lfinValue[1];
+				$lvz=  $lfinValue[2];
+
+				$tfin=endString($an,1);
+				if($tfin==1)
+				{
+					setAttr ($rfin+".rx") $lvx;
+					setAttr ($rfin+".ry") $lvy;
+					setAttr ($rfin+".rz") $lvz;
+				}
+				else
+				{
+					setAttr ($rfin+".rz") $lvz;
+				}
+			}
+			//●●●●●●●●●●その他の指対応●●●●●●●●●●		
+			else
+			{
+				$lfinValue=`getAttr ($lfin+".rotate")`;
+				$lvx=  $lfinValue[0];
+				$lvy= -$lfinValue[1];
+				$lvz= -$lfinValue[2];
+				
+				$tfin=endString($an,1);
+				if($tfin==1)
+				{
+					setAttr ($rfin+".rx") $lvx;
+					setAttr ($rfin+".ry") $lvy;
+					setAttr ($rfin+".rz") $lvz;
+				}
+				else
+				{
+					setAttr ($rfin+".rz") $lvz;
+				}
+			}
+		}
+	}
+}
+
+
+
+//■■■■■　手ポーズコピーウインドウ　■■■■■
+global proc DeltaRLFingerPoseCopy()
+{
+	string $windowName = `window -title "DeltaRLFingerPoseCopy" -widthHeight 200 100`;
+	columnLayout -adjustableColumn true;;
+	text -l "R=>L or L=>R ?   " -al "left";
+	radioButtonGrp -nrb 2 -vr -la2 "R=>L" "L=>R" 
+			-sl 1 radioButtonGrp1 ;
+	button -label "FingerPoseCopy" -command "DeltaFingerValueCopy";
+	button -label "close" -command ("deleteUI " + $windowName);
+	showWindow;
+}
+
+
+
+//■■■■■　手指のポーズ登録ウィンドウ　■■■■■
+global proc DeltaFingerPoseAdd()
+{
+	//指パターンの登録名
+	string $text;
+	string $result = `promptDialog
+    -t "DeltaFingerPoseAdd"
+    -m "Enter FingerPoseName:"
+	-ma "left"
+    -b "OK" -b "Cancel"
+    -db "OK" -cb "Cancel"
+    -ds "Cancel"`;
+	
+	global string $FingerPoseName;
+	
+	if ($result == "OK")
+	{
+		$FingerPoseName = `promptDialog -q -tx`;
+		DeltaFingerPoseEntry;
+	}
+}
+
+
+
+//■■■■■　手指のポーズ登録　■■■■■
+global proc DeltaFingerPoseEntry()
+{
+	//●●●●●●●●●●変数宣言●●●●●●●●●●
+	global string $FingerPoseName;
+	string $anames[];
+	$anames ={"thumb1","thumb2","thumb3","index1","index2","index3",
+			"middle1","middle2","middle3","ring1","ring2","ring3","pinky1","pinky2","pinky3"};
+	
+	string $lrn;
+	string $lrnames[]={"l_","r_"};
+
+	for($lrn in $lrnames)
+	{
+		$lrnLarge = capitalizeString($lrn);
+		$subc=($lrnLarge+"sub_ctrl");
+		
+		for($i=0;  $i<15; $i++)
+		{
+			
+			$finx=`getAttr ($lrn+$anames[$i]+"_rigrot.rx")`;
+			$finy=`getAttr ($lrn+$anames[$i]+"_rigrot.ry")`;
+			$finz=`getAttr ($lrn+$anames[$i]+"_rigrot.rz")`;
+			
+			$finhead = startString($anames[$i],1);
+			$finnum = endString($anames[$i],1);
+			$finsize = size($anames[$i])-1;
+			$finparts = startString($anames[$i],$finsize);
+			print $finparts;
+			$fpn = ($finparts+"_"+$FingerPoseName);
+			$subfpn = ($subc+"."+$fpn);
+			
+			switch($finhead)
+			{
+				//●●●●●●●●●● 親指　 ●●●●●●●●●●
+				case "t":
+					if($finnum == 1)
+					{
+						//●●●●●●●●●● 親指　初期値 ●●●●●●●●●●
+						addAttr -ln $fpn -at double -min 0 -max 10 -dv 0 $subc;
+						setAttr -e -keyable true $subfpn;
+						
+						setDrivenKeyframe -cd $subfpn -dv 0 -v 0 ($lrn+$anames[$i]+"_rigrot.rx");
+						setDrivenKeyframe -cd $subfpn -dv 0 -v 0 ($lrn+$anames[$i]+"_rigrot.ry");
+						setDrivenKeyframe -cd $subfpn -dv 0 -v 0 ($lrn+$anames[$i]+"_rigrot.rz");
+						
+						//●●●●●●●●●● 親指　設定値 ●●●●●●●●●●
+						setDrivenKeyframe -cd $subfpn -dv 10 -v $finx ($lrn+$anames[$i]+"_rigrot.rx");
+						setDrivenKeyframe -cd $subfpn -dv 10 -v $finy ($lrn+$anames[$i]+"_rigrot.ry");
+						setDrivenKeyframe -cd $subfpn -dv 10 -v $finz ($lrn+$anames[$i]+"_rigrot.rz");
+					}
+					else
+					{
+						//●●●●●●●●●● 親指　初期値 ●●●●●●●●●●
+						setDrivenKeyframe -cd $subfpn -dv 0 -v 0 ($lrn+$anames[$i]+"_rigrot.rz");
+						
+						//●●●●●●●●●● 親指　設定値 ●●●●●●●●●●
+						setDrivenKeyframe -cd $subfpn -dv 10 -v $finz ($lrn+$anames[$i]+"_rigrot.rz");
+					}
+				break;
+				
+				
+				//●●●●●●●●●● 人差し指　 ●●●●●●●●●●
+				case "i":
+					if($finnum == 1)
+					{
+						//●●●●●●●●●● 人差し指　初期値 ●●●●●●●●●●
+						addAttr -ln $fpn -at double  -min 0 -max 10 -dv 0 $subc;
+						setAttr -e -keyable true $subfpn;
+						
+						setDrivenKeyframe -cd $subfpn -dv 0 -v 0 ($lrn+$anames[$i]+"_rigrot.rx");
+						setDrivenKeyframe -cd $subfpn -dv 0 -v 0 ($lrn+$anames[$i]+"_rigrot.ry");
+						setDrivenKeyframe -cd $subfpn -dv 0 -v 0 ($lrn+$anames[$i]+"_rigrot.rz");
+						
+						//●●●●●●●●●● 人差し指　設定値 ●●●●●●●●●●
+						setDrivenKeyframe -cd $subfpn -dv 10 -v $finx ($lrn+$anames[$i]+"_rigrot.rx");
+						setDrivenKeyframe -cd $subfpn -dv 10 -v $finy ($lrn+$anames[$i]+"_rigrot.ry");
+						setDrivenKeyframe -cd $subfpn -dv 10 -v $finz ($lrn+$anames[$i]+"_rigrot.rz");
+					}
+					else
+					{
+						//●●●●●●●●●● 人差し指　初期値 ●●●●●●●●●●
+						setDrivenKeyframe -cd $subfpn -dv 0 -v 0 ($lrn+$anames[$i]+"_rigrot.rz");
+						
+						//●●●●●●●●●● 人差し指　設定値 ●●●●●●●●●●
+						setDrivenKeyframe -cd $subfpn -dv 10 -v $finz ($lrn+$anames[$i]+"_rigrot.rz");
+					}
+				break;
+				
+				
+				//●●●●●●●●●● 中指　 ●●●●●●●●●●
+				case "m":
+					if($finnum == 1)
+					{
+						//●●●●●●●●●● 中指　初期値 ●●●●●●●●●●
+						addAttr -ln $fpn -at double  -min 0 -max 10 -dv 0 $subc;
+						setAttr -e -keyable true $subfpn;
+						
+						setDrivenKeyframe -cd $subfpn -dv 0 -v 0 ($lrn+$anames[$i]+"_rigrot.rx");
+						setDrivenKeyframe -cd $subfpn -dv 0 -v 0 ($lrn+$anames[$i]+"_rigrot.ry");
+						setDrivenKeyframe -cd $subfpn -dv 0 -v 0 ($lrn+$anames[$i]+"_rigrot.rz");
+						
+						//●●●●●●●●●● 中指　設定値 ●●●●●●●●●●
+						setDrivenKeyframe -cd $subfpn -dv 10 -v $finx ($lrn+$anames[$i]+"_rigrot.rx");
+						setDrivenKeyframe -cd $subfpn -dv 10 -v $finy ($lrn+$anames[$i]+"_rigrot.ry");
+						setDrivenKeyframe -cd $subfpn -dv 10 -v $finz ($lrn+$anames[$i]+"_rigrot.rz");
+					}
+					else
+					{
+						//●●●●●●●●●● 中指　初期値 ●●●●●●●●●●
+						setDrivenKeyframe -cd $subfpn -dv 0 -v 0 ($lrn+$anames[$i]+"_rigrot.rz");
+						
+						//●●●●●●●●●● 中指　設定値 ●●●●●●●●●●
+						setDrivenKeyframe -cd $subfpn -dv 10 -v $finz ($lrn+$anames[$i]+"_rigrot.rz");
+					}
+				break;
+				
+				
+				//●●●●●●●●●● 薬指　 ●●●●●●●●●●
+				case "r":
+					if($finnum == 1)
+					{
+						//●●●●●●●●●● 薬指　初期値 ●●●●●●●●●●
+						addAttr -ln $fpn -at double  -min 0 -max 10 -dv 0 $subc;
+						setAttr -e -keyable true $subfpn;
+						
+						setDrivenKeyframe -cd $subfpn -dv 0 -v 0 ($lrn+$anames[$i]+"_rigrot.rx");
+						setDrivenKeyframe -cd $subfpn -dv 0 -v 0 ($lrn+$anames[$i]+"_rigrot.ry");
+						setDrivenKeyframe -cd $subfpn -dv 0 -v 0 ($lrn+$anames[$i]+"_rigrot.rz");
+						
+						//●●●●●●●●●● 薬指　設定値 ●●●●●●●●●●
+						setDrivenKeyframe -cd $subfpn -dv 10 -v $finx ($lrn+$anames[$i]+"_rigrot.rx");
+						setDrivenKeyframe -cd $subfpn -dv 10 -v $finy ($lrn+$anames[$i]+"_rigrot.ry");
+						setDrivenKeyframe -cd $subfpn -dv 10 -v $finz ($lrn+$anames[$i]+"_rigrot.rz");
+					}
+					else
+					{
+						//●●●●●●●●●● 薬指　初期値 ●●●●●●●●●●
+						setDrivenKeyframe -cd $subfpn -dv 0 -v 0 ($lrn+$anames[$i]+"_rigrot.rz");
+						
+						//●●●●●●●●●● 薬指　設定値 ●●●●●●●●●●
+						setDrivenKeyframe -cd $subfpn -dv 10 -v $finz ($lrn+$anames[$i]+"_rigrot.rz");
+					}
+				break;
+				
+				
+				//●●●●●●●●●● 小指　 ●●●●●●●●●●
+				case "p":
+					if($finnum == 1)
+					{
+						//●●●●●●●●●● 小指　初期値 ●●●●●●●●●●
+						addAttr -ln $fpn -at double  -min 0 -max 10 -dv 0 $subc;
+						setAttr -e -keyable true $subfpn;
+						
+						setDrivenKeyframe -cd $subfpn -dv 0 -v 0 ($lrn+$anames[$i]+"_rigrot.rx");
+						setDrivenKeyframe -cd $subfpn -dv 0 -v 0 ($lrn+$anames[$i]+"_rigrot.ry");
+						setDrivenKeyframe -cd $subfpn -dv 0 -v 0 ($lrn+$anames[$i]+"_rigrot.rz");
+						
+						//●●●●●●●●●● 小指　設定値 ●●●●●●●●●●
+						setDrivenKeyframe -cd $subfpn -dv 10 -v $finx ($lrn+$anames[$i]+"_rigrot.rx");
+						setDrivenKeyframe -cd $subfpn -dv 10 -v $finy ($lrn+$anames[$i]+"_rigrot.ry");
+						setDrivenKeyframe -cd $subfpn -dv 10 -v $finz ($lrn+$anames[$i]+"_rigrot.rz");
+					}
+					else
+					{
+						//●●●●●●●●●● 小指　初期値 ●●●●●●●●●●
+						setDrivenKeyframe -cd $subfpn -dv 0 -v 0 ($lrn+$anames[$i]+"_rigrot.rz");
+						
+						//●●●●●●●●●● 小指　設定値 ●●●●●●●●●●
+						setDrivenKeyframe -cd $subfpn -dv 10 -v $finz ($lrn+$anames[$i]+"_rigrot.rz");
+					}
+				break;
+			}
+		}
+	}
+}
+
+
+
+//■■■■■　mcapリネーム　■■■■■
+global proc DeltaMcapRename()
+{
+	select reference;
+	select -add -hi root;
+	
+	string $mj;
+	string $mcapj[]=`ls -sl`;
+	
+	for($mj in $mcapj)
+	{
+		$rn=stringAddPrefix($mj, "mcap_");
+		rename $mj $rn;
+	}
+}
+
+
+
+
+
+//■■■■■　モーション初期位置合わせ　■■■■■
+global proc DeltaMotionStartSet()
+{		
+	float $startX=`getAttr -t 0 "mcap_hips.tx"`;
+	float $startZ=`getAttr -t 0 "mcap_hips.tz"`;
+	
+	selectKey -k mcap_hips_translateX ;
+	keyframe -animation keys -relative -valueChange (0 - $startX) ;
+	select -cl;
+	
+	selectKey -k mcap_hips_translateZ ;
+	keyframe -animation keys -relative -valueChange (0 - $startZ) ;
+	select -cl;
+	
+	
+	select -r mcap_hips mcap_spine mcap_spine1 mcap_neck mcap_head 
+	mcap_l_shoulder mcap_l_arm mcap_l_forearm mcap_l_hand 
+	mcap_r_shoulder mcap_r_arm mcap_r_forearm mcap_r_hand 
+	mcap_r_upleg mcap_r_leg mcap_r_foot mcap_r_toebase 
+	mcap_l_upleg mcap_l_leg mcap_l_foot mcap_l_toebase ;
+	
+	$basejoint=`ls -sl`;
+	for($bj in $basejoint)
+	{	
+		currentTime 0 ;
+		
+		if($bj=="mcap_hips")
+		{	
+			setAttr ($bj+".translate") 0 0 0;
+			setKeyframe -at "tx" -at "ty" -at "tz" $bj;
+			setAttr ($bj+".rotate") 0 0 0;
+			setKeyframe -at "rx" -at "ry" -at "rz" $bj;
+			cutKey -cl -t ":" -f ":" -at "sx" -at "sy" -at "sz" $bj;
+			selectKey -add -k -t "1:199" ($bj+"_translateX");
+			selectKey -add -k -t "1:199" ($bj+"_translateY");
+			selectKey -add -k -t "1:199" ($bj+"_translateZ");
+			selectKey -add -k -t "1:199" ($bj+"_rotateX");
+			selectKey -add -k -t "1:199" ($bj+"_rotateY");
+			selectKey -add -k -t "1:199" ($bj+"_rotateZ");
+			keyTangent -itt flat -ott flat -animation objects -t 0 $bj;
+		}
+		else
+		{
+			setAttr ($bj+".rotate") 0 0 0;
+			setKeyframe -at "rx" -at "ry" -at "rz" $bj;
+			cutKey -cl -t ":" -f ":" -at "tx" -at "ty" -at "tz" -at "sx" -at "sy" -at "sz" $bj;
+			selectKey -add -k -t "1:199" ($bj+"_rotateX");
+			selectKey -add -k -t "1:199" ($bj+"_rotateY");
+			selectKey -add -k -t "1:199" ($bj+"_rotateZ");
+			keyTangent -itt flat -ott flat -animation objects -t 0 $bj;
+		}
+	}
+	
+	
+	cutKey -animation keys -clear;
+	
+	$htx=`getAttr -t 200 "mcap_hips.tx"`;
+	$htz=`getAttr -t 200 "mcap_hips.tz"`;
+	
+	selectKey -k -t "200:" "mcap_hips.tx";
+	
+	keyframe -animation keys -relative -valueChange (0 - $htx) ;
+	
+	selectKey -k -t "200:" "mcap_hips.tz";
+	keyframe -animation keys -relative -valueChange (0 - $htz) ;
+	
+	selectKey -cl;
+	
+	selectKey -add -k -t "0:200" mcap_hips_translateX ;
+	selectKey -add -k -t "0:200" mcap_hips_translateZ ;
+	keyTangent -itt flat -ott flat;
+}
+
+
+//■■■■■　肘の補助制御追加　■■■■■
+global proc DeltaElbowRig()
+{
+	//●●●●●●●●●●変数宣言●●●●●●●●●●
+	string $n,$elbowrot,$armrg,$oj,$md,$mdn,$caj,$belj,$baj;
+	string $lrs[]={"l_","r_"};
+	$elbowrot="elbow_rot";
+	$armrg="armrollG";
+	
+	//●●●●●●●●●●制御作成●●●●●●●●●●
+	for ($n in $lrs)
+	{
+		$elbowrot =($n+"elbow_rot");
+		$armrg =($n+"armrollG");
+		$oj =($n+"forearm_OriginalJ");
+		$md="multiplyDivide";
+		$mdn=($md+"_"+$elbowrot);
+		$celj=($n+"elbowroll");
+		$caj=($n+"arm");
+		//$celj=("ctrl_"+$n+"elbowroll");
+		//$caj=("ctrl_"+$n+"arm");
+		$belj=("base_"+$n+"elbowroll");
+		$baj=("base_"+$n+"arm");
+		
+		group -em -n $elbowrot;
+		float $pos[]=`xform -q -ws -rp $oj`;
+		setAttr ($elbowrot+".translate") $pos[0] $pos[1] $pos[2];
+
+		parent $elbowrot $armrg;
+		setAttr ($elbowrot+".rotate") 0 0 0;
+		makeIdentity -apply true -t 1 -r 0 -s 1 -n 0 $elbowrot;
+		joint -p $pos[0] $pos[1] $pos[2] -n $celj;
+		parent $celj $caj;
+		//joint -p $pos[0] $pos[1] $pos[2] -n $belj;
+		//parent $belj $baj;
+		
+		shadingNode -asUtility $md -n $mdn;
+		
+		setAttr ($mdn+".input2X") 0.5;
+		
+		connectAttr -f ($oj+".rz") ($mdn+".input1X");
+		connectAttr -f ($mdn+".outputX") ($elbowrot+".rz");
+		
+		parentConstraint -mo -w 1 $elbowrot $celj;
+		parentConstraint -mo -w 1 $celj $belj;
+	}
+}
+
+
+//■■■■■　キャラポジションの追加or削除　■■■■■
+global proc DeltaCharaPos()
+{
+	//●●●●●●●●●●CharaPosの有無で分岐●●●●●●●●●●
+	$cp=`ls "CharaPos"`;
+	int $cpnum;
+	$cpnum=size($cp);
+	
+	currentTime 0 ;
+	
+	//●●●●●●●●●●CharaPosない場合●●●●●●●●●●
+	if ($cpnum==0)
+	{
+		spaceLocator -p 0 0 0 -n CharaPos;
+		cutKey -at "tx" root;
+		pasteKey -at "tx" CharaPos;
+		cutKey -at "tz" root;
+		pasteKey -at "tz" CharaPos;
+	}
+	//●●●●●●●●●●CharaPosある場合●●●●●●●●●●
+	else
+	{
+		cutKey -at "tx" CharaPos;
+		pasteKey -at "tx" root;
+		cutKey -at "tz" CharaPos;
+		pasteKey -at "tz" root;
+		delete CharaPos;
+	}
+}
