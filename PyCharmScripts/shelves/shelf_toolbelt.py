@@ -167,6 +167,9 @@ class ToolBeltShelf(_Shelf):
                     command='from PyCharmScripts.utils import joints; reload(joints); joints.set_joint_label()')
         self.add_bt(label='ngSkin', ann='ngSkin Tool', icon='ngSkinToolsShelfIcon.png', no_popup=True,
                     command='from ngSkinTools.ui.mainwindow import MainWindow;MainWindow.open()')
+        o = pm.popupMenu(b=0)
+        self.add_menu_item(o, 'ngSkinTools2', command='import ngSkinTools2; ngSkinTools2.open_ui()')
+
         self.add_bt(label='', ann='Paint Skin Weight', icon='paintSkinWeights.png', no_popup=True,
                     command='pm.mel.eval("ArtPaintSkinWeightsToolOptions")')
         o = pm.popupMenu(b=0)
