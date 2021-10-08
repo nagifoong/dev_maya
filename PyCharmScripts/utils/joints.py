@@ -390,8 +390,8 @@ def create_stretchy_ik(ikh, con=None, forward='x', util_grp=None):
     return scale_node
 
 
-class create_RpIk:
-    # TODO continue create class, add stretch & pin pv, util grp
+class Create_RpIk:
+    # create rotate plane ik system with pv pin and stretch
     def __init__(self, objs, pv_dist=1):
         self.sj = objs[0]
         self.mj = objs[1]

@@ -9,7 +9,7 @@ reload(common)
 reload(joints)
 reload(channels)
 reload(shape_gen)
-# TODO: mirror function
+# TODO: quad mode?
 
 def rig_leg_ik(jnts, biped=True, quad=False, mirror=False, scale=1):
     """
@@ -285,7 +285,7 @@ def rig_leg_ik(jnts, biped=True, quad=False, mirror=False, scale=1):
     roll_max_cond.outColorR.connect(tt_drn_sum.input3D[1].input3Dx)
 
     '''ik handles'''
-    leg_ik_sys = joints.create_RpIk(jnts[1:4])
+    leg_ik_sys = joints.Create_RpIk(jnts[1:4])
     leg_ik_sys.delete_loc_shape()
     pm.parent(leg_ik_sys.ik_con.getParent(), ball_con_list[-1])
     ik_con.addAttr('stretchyAttr', at='enum', en='____:', k=1)
