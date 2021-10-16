@@ -21,7 +21,14 @@ COLOR_DICT = color_data.COLOR_DICT
 def replace_name(obj, old, new):
     """ replace name with type list"""
     old = TYPE_LIST[old] if old in TYPE_LIST.keys() else old
-    new = TYPE_LIST[new] if new in TYPE_LIST.keys() else new
+    if ':' not in new:
+        new = TYPE_LIST[new] if new in TYPE_LIST.keys() else new
+    else:
+        # use : to separate new names
+        replaced = []
+        for n in new.split(':'):
+            replaced.append(TYPE_LIST[n] if n in TYPE_LIST.keys() else n)
+        new = '_'.join(replaced)
     new_name = obj.replace(old, new)
 
     if isinstance(obj, pm.PyNode):
