@@ -17,7 +17,7 @@ def clear_shelves():
     :return:
     """
     shelves = ['Subdives', 'PaintEffects', 'Arnold', 'FX_Caching', 'MASH', 'MotionGraphics', 'FX', 'Rendering',
-               'TURTLE', "XGen"]
+               'TURTLE', "XGen", "ngSkinTools", "ngSkinTools2"]
 
     for shelf in shelves:
         if pm.shelfLayout(shelf, q=1, ex=1):
