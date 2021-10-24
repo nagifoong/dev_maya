@@ -70,7 +70,7 @@ def append_prefab(obj, name=''):
     return shp_dict
 
 
-def create(shp_name, name='', groups=['nul'], color=None, create_all=False, text=''):
+def create(shp_name, name='', groups=['nul'], color=None, create_all=False, text='', const_pxy=True):
 
     shp_dict = read_prefab()
 
@@ -105,6 +105,12 @@ def create(shp_name, name='', groups=['nul'], color=None, create_all=False, text
             con_data = shp_dict[shp_name]
             con = pm.curve(name=name, p=con_data['cv'], d=con_data['degree'], k=con_data['knots'])
 
+        if const_pxy:
+            pxy_grp = common.group_pivot(con, layer=['const_pxy'])[0]
+            pm.parent(con, w=1)
+            for at in 'trs':
+                con.attr(at).connect(pxy_grp.attr(at))
+
         if isinstance(color, int):
             colors.override_shape([con], color=color)
         elif isinstance(color, basestring):
@@ -115,6 +121,9 @@ def create(shp_name, name='', groups=['nul'], color=None, create_all=False, text
             # for grp in groups:
             #     temp = pm.group(name='{}_{}_')
             grps = common.group_pivot(con, layer=groups)
+            if const_pxy:
+                con.getParent().addChild(pxy_grp)
+                grps.append(pxy_grp)
             grps.append(con)
             return grps
         return con
