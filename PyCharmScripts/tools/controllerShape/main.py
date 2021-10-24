@@ -70,7 +70,7 @@ def append_prefab(obj, name=''):
     return shp_dict
 
 
-def create(shp_name, name='', groups=['nul'], color=None, create_all=False, text='', const_pxy=True):
+def create(shp_name, name='', groups=['nul'], color=None, create_all=False, text='', const_pxy=False):
 
     shp_dict = read_prefab()
 
