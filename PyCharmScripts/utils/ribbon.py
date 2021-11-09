@@ -765,12 +765,12 @@ def create_bendy(joint_list=None, prefix="ribbon", side='l', forward='x', up='z'
             'scale_node': global_scale, 'driver': main_grp}
 
 
-# TODO must need a parent joint and ctrl to control the whole system
 def create_bendy_chain(joint_list=None, side='l', name='', forward='x', up='z', con_scale=1, joint_count=5,
                        mirror=False):
     """
     create ribbon with providing exact multiple joints in joint list.
     Same as create bendy, but this will create extra mid ctrl(s).
+    This will auto create a parent if first item in joint list has no parent object.
     :param name: name of system
     :param joint_count: amount of joint to be created
     :param mirror: mirror behavior of the controllers
@@ -786,6 +786,13 @@ def create_bendy_chain(joint_list=None, side='l', name='', forward='x', up='z', 
     const_grps = []
     main_cons = []
     name = name if name else 'temp'
+
+    # make sure joint_list[0] has parent
+    prnt_jnt = joint_list[0].getParent()
+    if not prnt_jnt:
+        prnt_jnt = pm.duplicate(joint_list[0], po=1,
+                                name=common.replace_name(joint_list[0].name(), 'joint', 'prnt:joint'))[0]
+        prnt_jnt.addChild(joint_list[0])
 
     # groups
     main_con_grp = common.create_name(side=side, name="{}_bendy_main".format(name), fn='con', _type='group', create=True)

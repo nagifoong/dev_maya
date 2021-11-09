@@ -19,7 +19,9 @@ COLOR_DICT = color_data.COLOR_DICT
 
 
 def replace_name(obj, old, new):
-    """ replace name with type list"""
+    """
+    replace name with type list. New argument accept ":" as multiple input
+    """
     old = TYPE_LIST[old] if old in TYPE_LIST.keys() else old
     if ':' not in new:
         new = TYPE_LIST[new] if new in TYPE_LIST.keys() else new
