@@ -811,7 +811,7 @@ def create_bendy_chain(joint_list=None, side='l', name='', forward='x', up='z', 
     # create main bendy controllers
     for i, jnt in enumerate(new_jnts):
         name = common.replace_name(jnt.name(), 'joint', 'ctrl')
-        con = shape_gen.create('cube', name=name, groups=['offset', 'driven'])
+        con = shape_gen.create('cube', name=name, groups=['offset', 'driven'], color=24)
         con[-1].addAttr('twist', dv=0, k=1)
         con[-1].addAttr('tension', min=0, max=1, dv=0, k=1)
         con[-1].s.set([con_scale] * 3)
