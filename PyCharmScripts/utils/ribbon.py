@@ -840,6 +840,10 @@ def create_bendy_chain(joint_list=None, side='l', name='', forward='x', up='z', 
         prefix = '_'.join(joint_list[i].split('_')[1:-1])
         if prefix == '':
             prefix = create_name(side='', name=joint_list[i], _type='')
+
+        if prefix.isdigit():
+            prefix = '_'.join(joint_list[i].split('_')[:-1])
+
         bendy_sys = create_bendy(joint_list=[jnt, new_jnts[i + 1]], side=side, prefix=prefix, forward=forward, up=up,
                                  con_scale=con_scale, joint_count=joint_count, mirror=mirror)
         bendy_cons = bendy_sys['cons']
@@ -851,7 +855,8 @@ def create_bendy_chain(joint_list=None, side='l', name='', forward='x', up='z', 
                 if not item:
                     continue
                 grps.append(item[0])
-                pm.delete(pm.pointConstraint(item[0], q=1))
+                if pm.pointConstraint(item[0], q=1):
+                    pm.delete(pm.pointConstraint(item[0], q=1))
 
                 # connect twist attr and hide it
                 if key == 'start':
