@@ -1,5 +1,6 @@
 import maya.OpenMaya as om
 import pymel.all as pm
+import re
 
 from ..tools import controllerShape as shape_gen
 import vertsFunc
@@ -18,7 +19,7 @@ SIDE_COLOR = color_data.SIDE_COLOR
 COLOR_DICT = color_data.COLOR_DICT
 
 
-def replace_name(obj, old, new):
+def replace_name(obj, old, new, case_sensitive=True):
     """
     replace name with type list. New argument accept ":" as multiple input
     """
@@ -31,6 +32,13 @@ def replace_name(obj, old, new):
         for n in new.split(':'):
             replaced.append(TYPE_LIST[n] if n in TYPE_LIST.keys() else n)
         new = '_'.join(replaced)
+
+    # find word with case insensitive
+    if not case_sensitive:
+        se = re.search(old, obj, re.IGNORECASE)
+        if se:
+            old = se.group(0)
+
     new_name = obj.replace(old, new)
 
     if isinstance(obj, pm.PyNode):

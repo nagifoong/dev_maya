@@ -3,12 +3,14 @@ import maya.OpenMaya as om
 import maya.mel as mel
 
 # from PyCharmScripts.utils.common import create_name, create_matrix_constrain
+import attributes
 import common
 import skinning
 import joints
 import channels
 from PyCharmScripts.tools.controllerShape import main as shape_gen
 
+reload(attributes)
 reload(common)
 reload(skinning)
 reload(joints)
@@ -277,6 +279,10 @@ def create_bendy(joint_list=None, prefix="ribbon", side='l', forward='x', up='z'
         # joint_list = []
         print 'provided joint invalid'
         return
+
+    if common.TYPE_LIST['joint'] in prefix.lower():
+        prefix = common.replace_name(prefix, 'joint', '', case_sensitive=False)
+        prefix = prefix[:-1] if prefix.endswith('_') else prefix
 
     full_name = "{}_{}".format(side, prefix)
 
@@ -791,18 +797,21 @@ def create_bendy_chain(joint_list=None, side='l', name='', forward='x', up='z', 
     prnt_jnt = joint_list[0].getParent()
     if not prnt_jnt:
         prnt_jnt = pm.duplicate(joint_list[0], po=1,
-                                name=common.replace_name(joint_list[0].name(), 'joint', 'prnt:joint'))[0]
+                                name=common.replace_name(joint_list[0].name(), 'joint', 'prnt:joint', case_sensitive=False))[0]
         prnt_jnt.addChild(joint_list[0])
 
     # groups
     main_con_grp = common.create_name(side=side, name="{}_bendy_main".format(name), fn='con', _type='group', create=True)
     main_util_grp = common.create_name(side=side, name="{}_bendy_main".format(name), fn='util', _type='group', create=True)
     main_util_grp.visibility.set(0)
+    # attributes.create_attr(main_util_grp, name='volume', at='enum', en='___', k=1)
+    # attributes.create_attr(main_util_grp, name='volumePreservation', at='double', dv=1, k=1)
+    # attributes.create_attr(main_util_grp, name='multiplier', at='double', dv=1, k=1)
 
     # duplicate joint
     j_suf = common.create_name(side='', name='bendy', fn='main', _type='joint')
     j_name = common.create_name(side='', name='', _type='joint')
-    new_jnts = joints.duplicate_chain(joint_list, j_name, j_suf)
+    new_jnts = joints.duplicate_chain(joint_list, j_name, j_suf, case_sensitive=False)
 
     # create curve
     hard_crv, soft_crv = create_bendy_curve(joint_list=new_jnts, name=joint_list[0])

@@ -283,13 +283,18 @@ def create_stretchy_ik(ikh, con=None, forward='x', util_grp=None):
     if con is None:
         con = common.create_name(side='', name=ikh.name(), _type='transform', create=True)
 
-    if 'stretchy' not in pm.listAttr(con):
-        con.addAttr("stretchy", at="double", min=0, max=1, dv=1, k=1)
-
     ik_name = pm.ikHandle(ikh, q=1, n=1)
     joint_list = ikh.getJointList()
     # get last joint
     joint_list.append(ikh.getEffector().tx.inputs()[0])
+
+    # create attributes
+    attributes.create_attr(con, name='stretch', at='enum', en='___', k=1)
+    attributes.create_attr(con, name='stretchy', at='double', min=0, max=1, dv=1, k=1)
+    attributes.create_attr(con, name='upperLength', at='double', dv=1, k=1)
+    attributes.create_attr(con, name='lowerLength', at='double', dv=1, k=1)
+    con.upperLength.connect(joint_list[0].attr('s'+forward))
+    con.lowerLength.connect(joint_list[1].attr('s' + forward))
 
     '''create proxy for joint[0] and joint[-1], to prevent cycle'''
     pxy_a = common.create_name(side='', name=ik_name, fn='pinA', _type='locator', create=True)
@@ -357,6 +362,8 @@ def create_stretchy_ik(ikh, con=None, forward='x', util_grp=None):
         pin_scale_node = common.create_name(side='', name=ik_name, fn='pin_scaleFix', _type='multiplyDivide',
                                             create=True)
         pin_scale_node.operation.set(2)
+        scale_node.i2x.connect(pin_scale_node.i2x)
+        scale_node.i2x.connect(pin_scale_node.i2z)
         dist_node_a.distance.connect(pin_scale_node.i1x)
         dist_node_b.distance.connect(pin_scale_node.i1z)
 
@@ -379,26 +386,27 @@ def create_stretchy_ik(ikh, con=None, forward='x', util_grp=None):
         blend_node.outputB.connect(joint_list[2].attr(f_at), f=1)
         pv_con.pin.connect(blend_node.blender)
 
-    '''length multiplier'''
-    con.addAttr('upperLength', at='double', dv=1, k=1)
-    con.upperLength.connect(joint_list[0].attr('s'+forward))
-
-    con.addAttr('lowerLength', at='double', dv=1, k=1)
-    con.lowerLength.connect(joint_list[1].attr('s' + forward))
+    # '''length multiplier'''
+    # con.addAttr('upperLength', at='double', dv=1, k=1)
+    # con.upperLength.connect(joint_list[0].attr('s'+forward))
+    #
+    # con.addAttr('lowerLength', at='double', dv=1, k=1)
+    # con.lowerLength.connect(joint_list[1].attr('s' + forward))
 
     pm.select(ikh, con)
     return scale_node
 
 
 class Create_RpIk:
+    # beware of parenting and scaling issue
     # create rotate plane ik system with pv pin and stretch
-    def __init__(self, objs, pv_dist=1):
+    def __init__(self, objs, pv_dist=1, replace_key='joint'):
         self.sj = objs[0]
         self.mj = objs[1]
         self.ej = objs[2]
         self.pv_dist = pv_dist
 
-        self.name = common.replace_name(self.sj.name(), 'joint', '')
+        self.name = common.replace_name(self.sj.name(), replace_key, '')
         if self.name.endswith('_'):
             self.name = self.name[:-1]
 
@@ -462,9 +470,10 @@ class Create_RpIk:
                 target.attr(at.attrName()).connect(at)
 
 
-def duplicate_chain(jnts, old_value, new_value):
+def duplicate_chain(jnts, old_value, new_value, case_sensitive=True):
     """
     duplicate joint chain. Append new_value if old_value is not in the name
+    :param case_sensitive: make replace string ignore case
     :param jnts:
     :param old_value: string need to be replaced
     :param new_value:  replace string
@@ -472,8 +481,10 @@ def duplicate_chain(jnts, old_value, new_value):
     """
     new_jnts = []
     for jnt in jnts:
-        new_name = jnt.replace(old_value, new_value)
-        if old_value not in jnt.name():
+        new_name = common.replace_name(jnt.name(), old_value, new_value, case_sensitive=case_sensitive)
+
+        # new_name = jnt.replace(old_value, new_value)
+        if old_value not in jnt.name() and case_sensitive:
             new_name = '{}_{}'.format(jnt, new_value)
         nj = pm.duplicate(jnt, name=new_name, po=1)[0]
         if new_jnts:
