@@ -336,8 +336,8 @@ def create_bendy(joint_list=None, prefix="ribbon", side='l', forward='x', up='z'
     main_grp.twistStartRotateOrder.set(3, k=0, cb=1)
     main_grp.addAttr('twistEndRotateOrder', k=1, at='enum', en='xyz:yzx:zxy:xzy:yxz:zyx')
     main_grp.twistEndRotateOrder.set(3, k=0, cb=1)
-    main_grp.addAttr('squash', min=0, max=1, dv=1, k=1, at='double')
-    main_grp.addAttr('volume', min=0, dv=1, k=1, at='double')
+    main_grp.addAttr('squashStretch', min=0, max=1, dv=1, k=1, at='double')
+    main_grp.addAttr('volumeMultiplier', min=0, dv=1, k=1, at='double')
 
     # disable twistStart and twistEnd value
     auto_node = create_name(side='', name=full_name, fn='autoTwist', _type='multiplyDivide', create=True)
@@ -563,12 +563,12 @@ def create_bendy(joint_list=None, prefix="ribbon", side='l', forward='x', up='z'
     invr_node.outputX.connect(sqrt_node.input1X)
 
     squash_switch = create_name(side='', name=full_name, fn='squash_switch', _type='blendColors', create=True)
-    main_grp.squash.connect(squash_switch.blender)
+    main_grp.squashStretch.connect(squash_switch.blender)
     sqrt_node.outputX.connect(squash_switch.color1R)
     squash_switch.color2R.set(1)
 
     vol_mult_node = create_name(side='', name=full_name, fn='squash_multiplier', _type='multiplyDivide', create=True)
-    main_grp.volume.connect(vol_mult_node.input2X)
+    main_grp.volumeMultiplier.connect(vol_mult_node.input2X)
     squash_switch.outputR.connect(vol_mult_node.input1X)
 
     '''twist'''
@@ -804,9 +804,9 @@ def create_bendy_chain(joint_list=None, side='l', name='', forward='x', up='z', 
     main_con_grp = common.create_name(side=side, name="{}_bendy_main".format(name), fn='con', _type='group', create=True)
     main_util_grp = common.create_name(side=side, name="{}_bendy_main".format(name), fn='util', _type='group', create=True)
     main_util_grp.visibility.set(0)
-    # attributes.create_attr(main_util_grp, name='volume', at='enum', en='___', k=1)
-    # attributes.create_attr(main_util_grp, name='volumePreservation', at='double', dv=1, k=1)
-    # attributes.create_attr(main_util_grp, name='multiplier', at='double', dv=1, k=1)
+    attributes.create_attr(main_util_grp, name='volume', at='enum', en='___', k=1)
+    attributes.create_attr(main_util_grp, name='volumePreservation', at='double', min=0, max=1, dv=1, k=1)
+    attributes.create_attr(main_util_grp, name='multiplier', at='double', dv=1, k=1)
 
     # duplicate joint
     j_suf = common.create_name(side='', name='bendy', fn='main', _type='joint')
@@ -888,6 +888,10 @@ def create_bendy_chain(joint_list=None, side='l', name='', forward='x', up='z', 
             const_grps[-1].extend(new_grps[:3])
 
         const_grps.append((new_grps[-2:]))
+
+        # connect attribute
+        main_util_grp.volumePreservation.connect(bendy_sys['main_grps'][0].squashStretch)
+        main_util_grp.multiplier.connect(bendy_sys['main_grps'][0].volumeMultiplier)
 
     # create nodes to blend joints' position between hard and soft bend curves
     for q, grp in enumerate(const_grps):
