@@ -464,10 +464,7 @@ class Create_RpIk:
 
     @staticmethod
     def copy_attr(src, target):
-        attributes.duplicate_attrs([src, target], bridge_mode=False)
-        for at in src.listAttr(ud=1):
-            if at.isSettable:
-                target.attr(at.attrName()).connect(at)
+        attributes.copy_attr(src, target)
 
 
 def duplicate_chain(jnts, old_value, new_value, case_sensitive=True):

@@ -1,3 +1,5 @@
+import pymel.all as pm
+
 def duplicate_attrs(objs, ignore=[], transfer_conn=False, bridge_mode=True):
     """
     duplicate attribute from source to target
@@ -69,3 +71,15 @@ def duplicate_attrs(objs, ignore=[], transfer_conn=False, bridge_mode=True):
             if lock:
                 target.attr(at_name).set(l=1)
 
+
+def create_attr(obj, name='temp', **karg):
+    if name in pm.listAttr(obj, ud=1):
+        return obj.attr(name)
+    return obj.addAttr(name, **karg)
+
+
+def copy_attr(src, target):
+    duplicate_attrs([src, target], bridge_mode=False)
+    for at in src.listAttr(ud=1):
+        if at.isSettable:
+            target.attr(at.attrName()).connect(at)
