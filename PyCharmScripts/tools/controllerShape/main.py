@@ -135,7 +135,8 @@ def create_sub_ctrl(objs, scale=.8):
         if 'subCtrlVis' not in pm.listAttr(obj, ud=1):
             obj.addAttr('subCtrlVis', at='double', min=0, max=1, k=1, dv=0)
 
-        new_objs = pm.duplicate(obj, name=common.replace_name(obj.name(), 'ctrl', 'sub_{}'.format(name_data.TYPE_LIST['ctrl'])))[0]
+        new_objs = pm.duplicate(obj, name=common.replace_name(obj.name(), 'ctrl', 'sub_{}'.format(
+            name_data.TYPE_LIST['ctrl'])))[0]
         output.append(new_objs)
         for nobj in new_objs.getChildren(ad=1):
             if nobj not in new_objs.getShapes():
