@@ -1,6 +1,7 @@
 import pickle
 import os
 import pymel.all as pm
+import maya.mel as mel
 from PySide2 import QtWidgets, QtGui
 
 import ui_utils
@@ -18,24 +19,12 @@ def get_skin_cluster(node):
     :param node:
     :return:
     """
-    # make node become PyNode
-    if isinstance(node, basestring):
-        node = pm.PyNode(node)
 
-    # list skin cluster connected to node
-    conns = node.listHistory(type='skinCluster')
-    if len(conns) == 1:
-        return conns[0]
-    elif len(conns) == 0:
-        print "=SKIN= Unable to find skin cluster node on {}".format(node)
-        return None
+    scl = mel.eval('findRelatedSkinCluster("{}")'.format(node))
+    if scl:
+        return scl
     else:
-        for conn in conns:
-            # validate skin cluster
-            if conn.getGeometry()[0].node() == node:
-                return conn
-
-        print "=SKIN= Unable to find skin cluster node on {}. Creating new skinCluster.".format(node)
+        print "=SKIN= Unable to find skin cluster node on {}".format(node)
         return None
 
 
