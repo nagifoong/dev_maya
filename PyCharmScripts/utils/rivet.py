@@ -247,7 +247,7 @@ def create_obj_attach_mesh(vtxs, joint=False, prefix='attachMeshTemp', find_symm
             # nullify rotate offset
             jnt_grps[4].ro.set(5)
             for at in 'xyz':
-                uc = common.create_name(side='', name=jnt, fn='nul_rot'+at.upper(), _type='unitConversion', create=True)
+                uc = common.create_name(side='', name=jnt, fn='nul_rot' + at.upper(), _type='unitConversion', create=True)
                 uc.conversionFactor.set(-1)
                 jnt_grps[2].attr('r'+at).connect(uc.input)
                 uc.output.connect(jnt_grps[4].attr('r'+at))
