@@ -22,7 +22,7 @@ def get_skin_cluster(node):
 
     scl = mel.eval('findRelatedSkinCluster("{}")'.format(node))
     if scl:
-        return scl
+        return pm.PyNode(scl)
     else:
         print "=SKIN= Unable to find skin cluster node on {}".format(node)
         return None
