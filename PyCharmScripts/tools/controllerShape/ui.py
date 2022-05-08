@@ -52,7 +52,9 @@ class ControllerUI(QtWidgets.QDialog):
         self.height = 620
 
         self.resize(self.width, self.height)
-        self.setFixedSize(self.size())
+        self.setFixedWidth(self.width)
+        # self.setFixedHeight(self.height)
+        # self.setFixedSize(self.size())
 
         self.create_widget()
         self.create_connections()
@@ -78,6 +80,11 @@ class ControllerUI(QtWidgets.QDialog):
         menu.addSeparator()
         self.swap_crv = QtWidgets.QAction('Swap Curve', self)
         menu.addAction(self.swap_crv)
+        menu.addSeparator()
+        self.fix_width_action = QtWidgets.QAction('Fixed Width', self, checkable=True, checked=True)
+        menu.addAction(self.fix_width_action)
+        self.fix_height_action = QtWidgets.QAction('Fixed Height', self, checkable=True, checked=True)
+        menu.addAction(self.fix_height_action)
 
         main_menu.addMenu(menu)
         main_layout.addWidget(main_menu, 0, 0, 1, 0)
