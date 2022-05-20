@@ -59,7 +59,7 @@ def get_wire_weight(sel):
         [cmds.xform('{}.cv[{}]'.format(crv, c), ws=1, t=crv_orig[c]) for c in range(cv_count)]
 
         # transform cv to +y 1
-        cmds.xform(cv, ws=1, t=[0, 1, 0])
+        cmds.xform(cv, ws=1, r=1, t=[0, 1, 0])
 
         # get transformed vertices position
         current = get_point_position(mesh)
@@ -121,6 +121,7 @@ def convert_wire_to_skin(sel):
 
         # if original weight exists, make sure divide it by the weight from the new joints
         if orig_weight:
+            # TODO maybe normalize everything to get the similar deformations?
             temp = [w * (1-sum(weight)) for w in orig_weight[pnt]]
             temp.extend(weight)
             weight = temp
