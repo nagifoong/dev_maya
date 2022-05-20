@@ -83,3 +83,34 @@ def copy_attr(src, target):
     for at in src.listAttr(ud=1):
         if at.isSettable:
             target.attr(at.attrName()).connect(at)
+
+
+def reset_attr(objs, vis=False, custom_attr=False):
+    """
+    reset attribute on objs
+    :param objs:
+    :param vis: reset visibility
+    :param custom_attr: reset custom attribute based on its default value
+    :return:
+    """
+    for obj in objs:
+        for at in 'trs':
+            for ax in 'xyz':
+                try:
+                    obj.attr(at + ax).set(0 if at != 's' else 1)
+                except (Exception, ):
+                    print 'Unable to reset {}.{}'.format(obj, at+ax)
+        if vis:
+            try:
+                obj.visibility.set(0 if at != 's' else 1)
+            except (Exception,):
+                print 'Unable to reset {}.visibility'.format(obj)
+
+        if custom_attr:
+            for at in obj.listAttr(ud=1):
+                if at.type() in ['enum', 'bool', 'double', 'long']:
+                    if at.isKeyable() and not at.isLocked() and not at.isConnected():
+                        default_value = pm.addAttr(at, q=1, dv=1)
+                        at.set(default_value)
+                        pass
+
