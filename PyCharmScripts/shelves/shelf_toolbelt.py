@@ -148,6 +148,10 @@ class ToolBeltShelf(_Shelf):
         self.add_bt(label='', ann='Unlock attributes', icon=custom_icon_path + 'unlock_attribute.png',
                     command='from PyCharmScripts.utils import channels;reload(channels);'
                             'channels.cb_status(pm.selected(),all=1,v=1,lock=0,show=1)')
+        self.add_bt(ann='Reset Attribute', icon=custom_icon_path + 'reset_attr.png',
+                    command='from PyCharmScripts.utils import attributes; '
+                            'reload(attributes); attributes.reset_attr(pm.selected())')
+
         self.add_separator()
 
         # joints & skinning
@@ -246,6 +250,8 @@ class ToolBeltShelf(_Shelf):
                     command='pm.mel.eval("EPCurveToolOptions")')
         self.add_bt(label='', ann='Rebuild curve options', icon='rebuildCurve.png', no_popup=True,
                     command='pm.mel.eval("RebuildCurveOptions")')
+
+        self.add_separator()
 
         self.add_bt(label='', ann='Move object to target', icon=custom_icon_path + 'relocation.png', no_popup=True,
                     command='pm.delete(pm.parentConstraint(),pm.scaleConstraint())')
