@@ -7,11 +7,13 @@ import colors
 from PyCharmScripts.utils import channels
 from PyCharmScripts.data import name_data
 from PyCharmScripts.utils import common
+from PyCharmScripts.utils import data
 
 reload(common)
 reload(colors)
 reload(channels)
 reload(name_data)
+reload(data)
 
 folder_path = os.path.abspath(__file__).split('main.py')[0]
 file_loc = folder_path + "prefab.json"
@@ -23,7 +25,10 @@ thumbnail_path = folder_path + "thumbnails\\"
 def read_prefab():
     with open(file_loc) as rf:
         shp_dict = json.load(rf)
-    return shp_dict
+
+    output = data.convert(shp_dict)
+
+    return output
 
 
 def append_prefab(obj, name=''):
@@ -55,12 +60,12 @@ def append_prefab(obj, name=''):
     degree = obj.degree()
     for pt in pt_list:
         cv_pos.append([pt.x, pt.y, pt.z])
-    new_dict = {name: {'degree': degree, 'cv': cv_pos, 'knots': obj.getKnots()}}
+    new_dict = {name: {'degree': degree, 'point': cv_pos, 'knot': obj.getKnots()}}
 
     shp_dict.update(new_dict)
     # print shp_dict
     with open(file_loc, "w") as write_file:
-        json.dump(shp_dict, write_file, indent=4)
+        json.dump(shp_dict, write_file, indent=4, sort_keys=True)
 
     create_thumbnail([obj])
 
@@ -79,7 +84,7 @@ def create(shp_name, name='', groups=['nul'], color=None, create_all=False, text
             con_list = []
             for key in shp_dict.keys():
                 con_data = shp_dict[key]
-                con = pm.curve(name=key, p=con_data['cv'], d=con_data['degree'], k=con_data['knots'])
+                con = pm.curve(name=key, **con_data)
                 con_list.append(con)
             return con_list
 
@@ -103,7 +108,7 @@ def create(shp_name, name='', groups=['nul'], color=None, create_all=False, text
                 print "{} not exist in prefab.".format(shp_name)
                 return
             con_data = shp_dict[shp_name]
-            con = pm.curve(name=name, p=con_data['cv'], d=con_data['degree'], k=con_data['knots'])
+            con = pm.curve(name=name, **con_data)
 
         if const_pxy:
             pxy_grp = common.group_pivot(con, layer=['const_pxy'])[0]
@@ -308,3 +313,98 @@ def create_chain(objs, shape='circle', groups=['nul'], color=None, replace_key=[
             cons[-1][-1].addChild(con_dict[0])
         cons.append(con_dict)
     return cons
+
+
+def get_curve_data(obj):
+    obj = pm.PyNode(obj)
+    output = {}
+    if obj.type() != 'transform':
+        return None
+    for shp in obj.getShapes(ni=1):
+        output[shp.name()] = {}
+        # curve data
+        pt_list = shp.getCVs()
+        cv_pos = []
+        degree = shp.degree()
+        for pt in pt_list:
+            cv_pos.append([pt.x, pt.y, pt.z])
+        output[shp.name()]['curve'] = {'degree': degree, 'point': cv_pos, 'knot': shp.getKnots()}
+
+        # curve display param
+        enable = 1 if shp.overrideEnabled.get() else 0
+        line_width = shp.lineWidth.get()
+        color = shp.overrideColor.get()
+        output[shp.name()]['display'] = {'overrideEnabled': enable, 'overrideColor': color, 'lineWidth': line_width, }
+
+        # connection
+        vis_in = shp.visibility.inputs(p=1)
+        if vis_in:
+            output[shp.name()]['vis'] = vis_in[0].__str__()
+
+    return output
+
+
+def export_ctrl_shape(file_path):
+    sel = pm.selected()
+    output = {}
+
+    for s in sel:
+        data = get_curve_data(s)
+        output[s.name()] = data
+
+    with open(file_path, "w") as write_file:
+        json.dump(output, write_file, indent=4, sort_keys=True)
+    # with open(file_path) as rf:
+    #     shps_dict = json.load(rf)
+
+    pass
+
+
+def import_ctrls_shape(file_path):
+    with open(file_path) as rf:
+        old_dict = json.load(rf)
+    shps_dict = data.convert(old_dict)
+
+    to_delete = []
+    # find transform
+    for key in shps_dict:
+        node = pm.ls(key, type='transform')
+        if not node:
+            continue
+
+        # # check name
+        # for shp in node.getShapes(ni=1):
+        #     if shp.name() in [dict[key].keys()]:
+        #         shp.rename('{}_old'.format(shp))
+        #         to_delete.append(shp)
+
+        # create new shape
+        for shp_name in shps_dict[key]:
+            # old_shp = pm.ls(shp_name, type='nurbsCurve')
+            old_shp = node[0].getShapes(ni=1)
+            if old_shp:
+                to_delete.append(old_shp[0])
+                old_shp[0].rename('{}_old'.format(old_shp[0]))
+
+            new_node = pm.curve(name=shp_name + '_temp', **shps_dict[key][shp_name]['curve'])
+
+            new_shp = new_node.getShape()
+            new_shp.rename(shp_name)
+
+            # display param
+            for display in shps_dict[key][shp_name]['display']:
+                new_shp.attr(display).set(shps_dict[key][shp_name]['display'][display])
+
+            # connect visibility
+            if 'vis' in shps_dict[key][shp_name]:
+                try:
+                    pm.PyNode(shps_dict[key][shp_name]['vis']).connect(new_shp.visibility)
+                except (Exception,):
+                    pm.displayInfo('{} does not exist.'.format(shps_dict[key][shp_name]['vis']))
+
+            # get shape and parent to transform
+            pm.parent(new_shp, node, r=1, s=1)
+            pm.delete(new_node)
+
+    pm.delete(to_delete)
+    pm.select(cl=1)
