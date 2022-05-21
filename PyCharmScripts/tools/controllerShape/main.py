@@ -167,11 +167,8 @@ def swap_curve(source, targets, keep_source=True):
 
     for target in targets:
         dul_src = pm.duplicate(source, rr=1, rc=1)[0]
-        # pm.matchTransform(dul_src, target)
+        pm.matchTransform(dul_src, target)
         target.addChild(dul_src)
-        dul_src.t.set([0] * 3)
-        dul_src.r.set([0] * 3)
-        dul_src.s.set([1] * 3)
         pm.makeIdentity(dul_src, apply=True, translate=True, rotate=True, scale=True)
 
         # shape attributes
@@ -344,7 +341,13 @@ def get_curve_data(obj):
     return output
 
 
-def export_ctrl_shape(file_path):
+def export_ctrl_shape():
+    file_path = pm.fileDialog2(caption='Save controller shapes', ff='*.json', fm=0, okc='Save')
+    if not file_path:
+        pm.displayInfo('Operation canceled')
+        return
+    file_path = file_path[0]
+
     sel = pm.selected()
     output = {}
 
@@ -354,13 +357,18 @@ def export_ctrl_shape(file_path):
 
     with open(file_path, "w") as write_file:
         json.dump(output, write_file, indent=4, sort_keys=True)
-    # with open(file_path) as rf:
-    #     shps_dict = json.load(rf)
 
-    pass
+    pm.displayInfo('Export controller shape successfully.')
+    return
 
 
-def import_ctrls_shape(file_path):
+def import_ctrls_shape():
+    file_path = pm.fileDialog2(caption='Load controller shapes from file', ff='*.json', fm=1, okc='Load')
+    if not file_path:
+        pm.displayInfo('Operation canceled')
+        return
+    file_path = file_path[0]
+
     with open(file_path) as rf:
         old_dict = json.load(rf)
     shps_dict = data.convert(old_dict)
@@ -371,12 +379,6 @@ def import_ctrls_shape(file_path):
         node = pm.ls(key, type='transform')
         if not node:
             continue
-
-        # # check name
-        # for shp in node.getShapes(ni=1):
-        #     if shp.name() in [dict[key].keys()]:
-        #         shp.rename('{}_old'.format(shp))
-        #         to_delete.append(shp)
 
         # create new shape
         for shp_name in shps_dict[key]:
@@ -408,3 +410,5 @@ def import_ctrls_shape(file_path):
 
     pm.delete(to_delete)
     pm.select(cl=1)
+    pm.displayInfo('Import controller shape successfully.')
+    return

@@ -246,6 +246,14 @@ class ToolBeltShelf(_Shelf):
                            command='from PyCharmScripts.tools.controllerShape import main; '
                                    'reload(main); main.swap_curve(pm.selected()[0], pm.selected()[1:])')
 
+        self.add_menu_item(o, divider=True)
+        self.add_menu_item(o, 'Export Curve Shape',
+                           command='from PyCharmScripts.tools.controllerShape import main; '
+                                   'reload(main); main.export_ctrl_shape()')
+        self.add_menu_item(o, 'Import Curve Shape',
+                           command='from PyCharmScripts.tools.controllerShape import main; '
+                                   'reload(main); main.import_ctrls_shape()')
+
         self.add_bt(label='', ann='EP curve tool options', icon='curveEP.png', no_popup=True,
                     command='pm.mel.eval("EPCurveToolOptions")')
         self.add_bt(label='', ann='Rebuild curve options', icon='rebuildCurve.png', no_popup=True,
