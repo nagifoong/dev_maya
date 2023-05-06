@@ -1,11 +1,20 @@
 import pickle
 import os
+import sys
+from functools import partial
 import pymel.all as pm
 import maya.mel as mel
 from PySide2 import QtWidgets, QtGui
+import maya.OpenMayaUI as omui
+from shiboken2 import wrapInstance
 
 import ui_utils
 from ..data import name_data
+
+py_version = sys.version.split(' ')[0]
+if not py_version.startswith('2'):
+    long = int
+    from importlib import reload
 
 reload(ui_utils)
 reload(name_data)
@@ -351,6 +360,123 @@ class SkinDialog(QtWidgets.QDialog):
                 import_skin(obj_name, file_path=self.path_line.text() + i.text())
 
 
+class SkinToolMod(QtWidgets.QWidget):
+    def __init__(self, parent=None):
+        super(SkinToolMod, self).__init__(parent)
+        self.ui_name = 'SkinToolMod'
+        self.ui_setting = ui_utils.ui_geom_setting(self, ui_name=self.ui_name, load=False, save=False)
+
+        self.create_widget()
+        self.create_connections()
+
+        step_value = self.ui_setting.value('{}/spinBoxVal'.format(self.ui_name))
+        if step_value:
+            self.step_sb.setValue(float(step_value))
+        self.restore_brush_value()
+
+    def create_widget(self):
+        main_lyt = QtWidgets.QHBoxLayout()
+        self.setLayout(main_lyt)
+
+        btn_grid = QtWidgets.QGridLayout()
+        btn_grid.setSpacing(5)
+        main_lyt.addLayout(btn_grid)
+
+        for i, txt in enumerate([0.0, 0.1, 0.5, 0.9, 1.0]):
+            btn = QtWidgets.QPushButton(str(txt))
+            btn_grid.addWidget(btn, 0, i)
+            btn.clicked.connect(partial(self._set_brush_value, txt))
+
+        self.minus_btn = QtWidgets.QPushButton('--')
+        btn_grid.addWidget(self.minus_btn, 1, 0, 1, 2)\
+
+        self.step_sb = QtWidgets.QDoubleSpinBox()
+        self.step_sb.setDecimals(4)
+        self.step_sb.setValue(.025)
+        self.step_sb.setRange(.0001, 1)
+        self.step_sb.setSingleStep(.001)
+        btn_grid.addWidget(self.step_sb, 1, 2)
+
+        self.add_btn = QtWidgets.QPushButton('++')
+        btn_grid.addWidget(self.add_btn, 1, 3, 1, 2)
+
+    def create_connections(self):
+        self.minus_btn.clicked.connect(self._brush_value_reduction)
+        self.add_btn.clicked.connect(self._brush_value_increment)
+
+        for item in pm.lsUI(type='radioButton'):
+            # find radio button in artAttrSkin ui and with OperRadio name
+            if 'artAttrSkin' in item.name() and 'OperRadio' in item.name():
+                radio_obj = pm.toPySideControl(item.name())
+                radio_obj.toggled.connect(self.change_brush_mode)
+        pass
+
+    @staticmethod
+    def _get_brush_value():
+        return pm.floatSliderGrp('artAttrValueSlider', query=True, value=True)
+
+    def _set_brush_value(self, value):
+        # edit value on the slider and run mel to make sure maya register it
+        pm.floatSliderGrp('artAttrValueSlider', edit=True, value=value)
+        mel.eval('artSkinSetSelectionValue {} false artAttrSkinPaintCtx artAttrSkin;'.format(value))
+        self.save_brush_value()
+        return
+
+    def restore_brush_value(self):
+        """
+        setting brush strength based on previously set value
+        :return:
+        """
+        for item in pm.lsUI(type='radioButton'):
+            # find radio button in artAttrSkin ui and with OperRadio name
+            if 'artAttrSkin' in item.name() and 'OperRadio' in item.name() and item.getSelect():
+                key = '{}/brush_{}'.format(self.ui_name, item.getLabel())
+                val = self.ui_setting.value(key)
+                if not val:
+                    continue
+                self._set_brush_value(float(val))
+
+    def save_brush_value(self):
+        """
+        saving ui value
+        :return:
+        """
+        for item in pm.lsUI(type='radioButton'):
+            # find radio button in artAttrSkin ui and with OperRadio name
+            if 'artAttrSkin' in item.name() and 'OperRadio' in item.name() and item.getSelect():
+                key = '{}/brush_{}'.format(self.ui_name, item.getLabel())
+                self.ui_setting.setValue(key, str(self._get_brush_value()))
+        key = '{}/spinBoxVal'.format(self.ui_name)
+        self.ui_setting.setValue(key, str(self.step_sb.value()))
+
+    def _brush_value_increment(self):
+        step = self.step_sb.value()
+        current = self._get_brush_value()
+        val = step + current
+        self._set_brush_value(val if val < 1 else 1.0)
+
+    def _brush_value_reduction(self):
+        step = self.step_sb.value()
+        current = self._get_brush_value()
+        val = current - step
+        self._set_brush_value(val if val > 0 else 0.0)
+
+    def change_brush_mode(self):
+        radio_btn = self.sender()
+        mode = radio_btn.isChecked()
+        key = '{}/brush_{}'.format(self.ui_name, radio_btn.text())
+
+        if radio_btn.text() not in ['Replace', 'Add', 'Scale', 'Smooth']:
+            return
+
+        if mode:
+            val = self.ui_setting.value(key) if self.ui_setting.value(key) else 0
+            self._set_brush_value(float(val))
+
+        else:
+            self.ui_setting.setValue(key, str(self._get_brush_value()))
+
+
 def get_skin_window():
     """call ShapeTweaksDialog"""
     global dialog_skin_file
@@ -362,3 +488,34 @@ def get_skin_window():
 
     dialog_skin_file = SkinDialog()
     return dialog_skin_file
+
+
+def modify_skin_tool():
+    """
+    use cmds.evalDeferred() to run this
+    :return:
+    """
+    global skin_tool_mod
+    try:
+        skin_tool_mod.close()
+        skin_tool_mod.deleteLater()
+    except (Exception,):
+        pass
+
+    # get column layout of paint skin weight tool
+    for item in pm.lsUI(type='radioButton'):
+        # find radio button in artAttrSkin ui and with OperRadio name
+        if 'artAttrSkin' in item.name() and 'OperRadio' in item.name():
+            row = item.parent()
+            row_obj = omui.MQtUtil.findControl(row)
+            row_qt_obj = wrapInstance(int(row_obj), QtWidgets.QVBoxLayout)
+            row_qt_parent = row_qt_obj.parent()
+            qt_layout = row_qt_parent.layout()
+
+            # call mod skin tool
+            skin_tool_mod = SkinToolMod()
+            qt_layout.addWidget(skin_tool_mod)
+            return skin_tool_mod
+    else:
+        # unable to find ui
+        return
