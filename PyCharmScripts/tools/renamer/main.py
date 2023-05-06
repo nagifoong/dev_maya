@@ -93,7 +93,7 @@ class Renamer:
     def refresh_ui(self):
         self.sj = cmds.scriptJob(e=['SelectionChanged', partial(self.refresh_content, 0)])
         cmds.scriptJob(uid=['windowRnm', partial(cmds.scriptJob, k=self.sj)])
-        print self.sj
+        # print self.sj
 
     def _run(self):
         # if cmds.window('windowRnm', q=1, ex=1):
