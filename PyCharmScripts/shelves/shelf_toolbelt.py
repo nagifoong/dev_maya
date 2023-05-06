@@ -97,19 +97,23 @@ class _Shelf(object):
                 continue
             temp.append(child)
         output.append(temp)
-        print output
+        print(output)
         return output
 
 
 class ToolBeltShelf(_Shelf):
     def __init__(self, name='ToolBelt'):
+        # pm.evalDeferred('super(ToolBeltShelf, {}).__init__(name={})'.format(self, name))
         super(ToolBeltShelf, self).__init__(name=name)
-        self.build()
+        # pm.evalDeferred("ToolBeltShelf().build()")
+        # print('got here before')
+        # self.build()
+        # print('got here now')
 
     def build(self):
         self.add_bt(label='', ann='Reload Shelf', icon='refresh.png', no_popup=True,
                     command='from PyCharmScripts.shelves import shelf_toolbelt; reload(shelf_toolbelt); '
-                            'shelf_toolBelt_var=shelf_toolbelt.ToolBeltShelf()')
+                            'shelf_toolBelt_var=shelf_toolbelt.ToolBeltShelf();pm.evalDeferred("shelf_toolBelt_var.build()")')
         o = pm.popupMenu(b=0)
         self.add_menu_item(o, 'Get child array',
                            command='from PyCharmScripts.shelves import shelf_toolbelt; reload(shelf_toolbelt); '
@@ -164,6 +168,13 @@ class ToolBeltShelf(_Shelf):
         o = pm.popupMenu(b=0)
         self.add_menu_item(o, 'Create Joint on grid',
                            command='pm.select(cl=1);pm.joint()')
+        self.add_menu_item(o, 'Create Joint on components center',
+                           command='from PyCharmScripts.utils import vertsFunc as vf;reload(vf);sel = pm.selected()\n'
+                                   'if sel:'
+                                   '    vf.find_center(sel, create_obj=pm.joint)\n'
+                                   'else:'
+                                   '    pm.select(cl=1);'
+                                   '    pm.joint();')
         self.add_menu_item(o, 'Reset joint orient',
                            command='[q.jo.set([0] * 3) for q in pm.selected()]')
         qt_menu = ui_utils.convert_to_qt(o, QtWidgets.QMenu)
@@ -218,7 +229,8 @@ class ToolBeltShelf(_Shelf):
 
         # objects and other functions
         self.add_bt(label='', ann='Create Locator', icon='locator.png', no_popup=True,
-                    command='pm.mel.eval("CreateLocator")')
+                    command='from PyCharmScripts.utils import vertsFunc as vf; reload(vf);sel = pm.selected(); ['
+                            'vf.find_center(sel, create_obj=pm.spaceLocator) if sel else pm.spaceLocator()]')
         self.add_bt(label='', ann='Create Nurbs', icon='circle.png', no_popup=True,
                     command='from PyCharmScripts.tools.controllerShape import ui; reload(ui); ui.get_ui_window()')
         o = pm.popupMenu(b=0)

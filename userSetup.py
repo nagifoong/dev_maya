@@ -9,18 +9,18 @@ for p in pathList:
     if p not in sys.path:
         sys.path.append(p)
     else:
-        print "{} already in script path env.".format(p)
+        print("{} already in script path env.".format(p))
 
 from PyCharmScripts.shelves import shelf_toolbelt
 reload(shelf_toolbelt)
 
-cmds.evalDeferred("shelf_toolbelt.clear_shelves();shelf_toolbelt.ToolBeltShelf()")
+cmds.evalDeferred("shelf_toolbelt.clear_shelves();shelf_toolbelt.ToolBeltShelf();pm.evalDeferred('shelf_toolBelt_var.build()')")
 
 
 def aSave(n):
-    if cmds.file(q=1,uc=1):
+    if cmds.file(q=1, uc=1):
         cmds.delete('uiConfigurationScriptNode')
-        cmds.file(s=1,uc=0)
+        cmds.file(s=1, uc=0)
 kSave = om.MSceneMessage.addCallback(om.MSceneMessage.kAfterSave, aSave)
 
 ### mop ##
