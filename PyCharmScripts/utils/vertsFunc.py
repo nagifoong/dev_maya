@@ -1,4 +1,5 @@
 import pymel.all as pm
+import maya.cmds as cmds
 
 
 def find_symmetric(vtxs, mirror_plane='YZ'):
@@ -80,3 +81,27 @@ def find_side_vtx(vtxs, axis='x'):
 
     return {'far': [far[0], far[-1]],
             'zero': zero[0:2]}
+
+
+def find_center(sel, create_obj=None):
+    """
+    find the center of components (maya command evaluates faster)
+    :param create_obj: function to create obj
+    :param sel: [list of object]
+    :return: [x, y, z]
+    """
+    if isinstance(sel[0], pm.PyNode):
+        sel = [s.name() for s in sel]
+
+    bb = cmds.xform(sel, boundingBox=True, worldSpace=True, query=True)
+    # bbx = cmds.xform(object, q=True, bb=True, ws=True)  # world space
+    x = (bb[0] + bb[3]) / 2.0
+    y = (bb[1] + bb[4]) / 2.0
+    z = (bb[2] + bb[5]) / 2.0
+
+    if create_obj:
+        cmds.select(clear=True)
+        node = create_obj()
+        pm.xform(node, worldSpace=True, translation=[x, y, z])
+        return node
+    return [x, y, z]
