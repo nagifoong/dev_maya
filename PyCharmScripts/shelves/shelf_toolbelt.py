@@ -1,8 +1,12 @@
 import os
 
 import pymel.all as pm
-
+from PySide2 import QtWidgets
 from ..data import color_data
+import custom_ui
+from ..utils import ui_utils
+
+reload(custom_ui)
 
 current_user = os.environ.get('USERNAME')
 custom_icon_path = "{}icons\\".format(os.path.abspath(__file__).split('shelves')[0])
@@ -158,8 +162,13 @@ class ToolBeltShelf(_Shelf):
         self.add_bt(label='', ann='Create Joint', icon='kinJoint.png', no_popup=True,
                     command='pm.mel.eval("JointTool")', double_command='pm.mel.eval("JointToolOptions")')
         o = pm.popupMenu(b=0)
+        self.add_menu_item(o, 'Create Joint on grid',
+                           command='pm.select(cl=1);pm.joint()')
         self.add_menu_item(o, 'Reset joint orient',
                            command='[q.jo.set([0] * 3) for q in pm.selected()]')
+        qt_menu = ui_utils.convert_to_qt(o, QtWidgets.QMenu)
+        joint_radius_slider = custom_ui.JointRadiusSlider(parent=qt_menu)
+        qt_menu.addAction(joint_radius_slider)
 
         self.add_bt(label='Vis', ann='Show or Hide Joint. Click once for show, twice for hide',
                     icon='kinJoint.png', no_popup=True,
@@ -175,14 +184,23 @@ class ToolBeltShelf(_Shelf):
         self.add_menu_item(o, 'ngSkinTools2', command='import ngSkinTools2; ngSkinTools2.open_ui()')
 
         self.add_bt(label='', ann='Paint Skin Weight', icon='paintSkinWeights.png', no_popup=True,
-                    command='pm.mel.eval("ArtPaintSkinWeightsToolOptions")')
+                    command='from PyCharmScripts.utils import skinning;reload(skinning); '
+                            'pm.mel.eval("ArtPaintSkinWeightsToolOptions");'
+                            'cmds.evalDeferred("skinning.modify_skin_tool()")')
         o = pm.popupMenu(b=0)
         self.add_menu_item(o, 'Bind Skin', command='from PyCharmScripts.utils import skinning; reload(skinning); '
                                                    'skinning.create_scl(pm.selected())')
 
         self.add_bt(label='', ann='Mirror Skin Weight', icon='mirrorSkinWeight.png', no_popup=True,
-                    command='pm.mel.eval("MirrorSkinWeights")',
+                    command='pm.mel.eval("doMirrorSkinWeightsArgList( 2, { " -mirrorMode YZ '
+                            '-surfaceAssociation closestPoint -influenceAssociation label '
+                            '-influenceAssociation oneToOne" } );")',
                     double_command='pm.mel.eval("MirrorSkinWeightsOptions")')
+        o = pm.popupMenu(b=0)
+        self.add_menu_item(o, 'Mirror -x to +x',
+                           command='pm.mel.eval("doMirrorSkinWeightsArgList( 2, { " -mirrorMode YZ '
+                                   '-mirrorInverse -surfaceAssociation closestPoint '
+                                   '-influenceAssociation label -influenceAssociation oneToOne" } );")')
 
         self.add_bt(label='', ann='Copy Skin Weight', icon='copySkinWeight.png', no_popup=True,
                     command='pm.mel.eval("CopySkinWeights")',
