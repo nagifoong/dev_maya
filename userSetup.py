@@ -4,7 +4,7 @@ import maya.OpenMaya as om
 import maya.cmds as cmds
 import pymel.all as pm
 
-pathList = [r'D:\backups\dev_maya']
+pathList = [r'D:\PyCharmProjects\dev_maya']
 for p in pathList:
     if p not in sys.path:
         sys.path.append(p)
