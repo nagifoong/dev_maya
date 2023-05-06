@@ -45,17 +45,25 @@ def set_joint_vis(v=True, status=False):
     :param v:
     :return:
     """
-    for jnt in pm.ls(type='joint'):
+    sel = pm.selected()
+
+    if sel:
+        jnts = []
+        [jnts.extend(q.getChildren(ad=1, type='joint')) for q in sel]
+        jnts.extend(pm.ls(sl=1, type='joint'))
+    else:
+        jnts = pm.ls(type='joint')
+
+    for jnt in jnts:
         if jnt.drawStyle.isConnected() or jnt.drawStyle.isLocked():
             continue
         if v:
             jnt.drawStyle.set(2)
-            if status:
-                pm.warning("==JOINT== Hiding Joints.")
         else:
             jnt.drawStyle.set(0)
-            if status:
-                pm.warning("==JOINT== Showing Joints.")
+
+    if status:
+        pm.displayInfo("==JOINT== {}ing Joints.".format('Show' if not v else 'Hid'))
 
 
 def set_joint_label():
