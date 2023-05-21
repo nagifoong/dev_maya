@@ -33,6 +33,10 @@ def get_skin_cluster(node):
     if scl:
         return pm.PyNode(scl)
     else:
+        # try using its parent
+        scl = mel.eval('findRelatedSkinCluster("{}")'.format(node.node()))
+        if scl:
+            return pm.PyNode(scl)
         print "=SKIN= Unable to find skin cluster node on {}".format(node)
         return None
 
@@ -374,6 +378,9 @@ class SkinToolMod(QtWidgets.QWidget):
             self.step_sb.setValue(float(step_value))
         self.restore_brush_value()
 
+        self.apply_scl_tree_expand_status()
+        self.modify_scl_influence_tree()
+
     def create_widget(self):
         main_lyt = QtWidgets.QHBoxLayout()
         self.setLayout(main_lyt)
@@ -451,12 +458,16 @@ class SkinToolMod(QtWidgets.QWidget):
 
     def _brush_value_increment(self):
         step = self.step_sb.value()
+        if pm.getModifiers() == 1:
+            step *= .5
         current = self._get_brush_value()
         val = step + current
         self._set_brush_value(val if val < 1 else 1.0)
 
     def _brush_value_reduction(self):
         step = self.step_sb.value()
+        if pm.getModifiers() == 1:
+            step *= .5
         current = self._get_brush_value()
         val = current - step
         self._set_brush_value(val if val > 0 else 0.0)
@@ -475,6 +486,49 @@ class SkinToolMod(QtWidgets.QWidget):
 
         else:
             self.ui_setting.setValue(key, str(self._get_brush_value()))
+
+    def modify_scl_influence_tree(self):
+        # use objectTypeUI to find ui type with name
+        pm.treeView('theSkinClusterInflList', e=1, ecc=self.get_scl_tree_expand_status)
+
+    @staticmethod
+    def get_scl_tree_expand_status(name, status):
+        scl = get_skin_cluster(pm.selected()[0])
+        infl_status = []
+        # print(name, status)
+        children = pm.treeView('theSkinClusterInflList', query=1, children=1)
+
+        # if shift is holding, expand/ hide all its children
+        if pm.getModifiers() == 1:
+            sub_children = pm.treeView('theSkinClusterInflList', query=1, children=name)[1:]
+            for sub_child in sub_children:
+                pm.treeView('theSkinClusterInflList', edit=1, expandItem=(sub_child, status))
+
+        for child in children:
+            if name == child and not status:
+                infl_status.append(child)
+                continue
+            if not pm.treeView('theSkinClusterInflList', query=1, isItemExpanded=child):
+                infl_status.append(child)
+
+        if "infl_expand_status" not in pm.listAttr(scl):
+            scl.addAttr("infl_expand_status", dataType='string')
+        scl.infl_expand_status.set('##'.join(infl_status), type='string')
+
+    @staticmethod
+    def apply_scl_tree_expand_status():
+        scl = get_skin_cluster(pm.selected()[0])
+        if "infl_expand_status" not in pm.listAttr(scl):
+            return
+        infl_status = scl.infl_expand_status.get()
+        infl_list = infl_status.split('##')
+        for infl in infl_list:
+            if pm.treeView('theSkinClusterInflList', query=1, itemExists=infl):
+                try:
+                    pm.treeView('theSkinClusterInflList', edit=1, expandItem=[infl, 0])
+                except:
+                    print("Failed on ", infl)
+        # pm.treeView('theSkinClusterInflList', expendItem=SCL_INFLUENCE_EXPAND_STATUS[scl])
 
 
 def get_skin_window():
