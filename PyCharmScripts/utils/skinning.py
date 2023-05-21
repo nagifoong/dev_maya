@@ -494,8 +494,7 @@ class SkinToolMod(QtWidgets.QWidget):
     @staticmethod
     def get_scl_tree_expand_status(name, status):
         scl = get_skin_cluster(pm.selected()[0])
-        infl_status = []
-        # print(name, status)
+        infl_collapsed = []
         children = pm.treeView('theSkinClusterInflList', query=1, children=1)
 
         # if shift is holding, expand/ hide all its children
@@ -505,15 +504,16 @@ class SkinToolMod(QtWidgets.QWidget):
                 pm.treeView('theSkinClusterInflList', edit=1, expandItem=(sub_child, status))
 
         for child in children:
-            if name == child and not status:
-                infl_status.append(child)
+            if name == child:
+                if not status:
+                    infl_collapsed.append(child)
                 continue
             if not pm.treeView('theSkinClusterInflList', query=1, isItemExpanded=child):
-                infl_status.append(child)
+                infl_collapsed.append(child)
 
         if "infl_expand_status" not in pm.listAttr(scl):
             scl.addAttr("infl_expand_status", dataType='string')
-        scl.infl_expand_status.set('##'.join(infl_status), type='string')
+        scl.infl_expand_status.set('##'.join(infl_collapsed), type='string')
 
     @staticmethod
     def apply_scl_tree_expand_status():
