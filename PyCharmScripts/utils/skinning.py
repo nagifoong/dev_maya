@@ -60,15 +60,15 @@ def create_scl(*argv, **kargv):
     return scl
 
 
-def copy_skin(args, one_to_one=False):
+def copy_skin(kargs, one_to_one=False):
     """
     Copy skin cluster, create new skin cluster if target is not skinned.
     :param args: object needed to copy skin weight from source
     :param one_to_one: source and target must have same vertices count
     :return:
     """
-    source = args[0]
-    args = args[1:]
+    source = kargs[0]
+    args = kargs[1:]
     source_scl = get_skin_cluster(source)
     new_scl = []
     if not source_scl:
@@ -95,7 +95,7 @@ def copy_skin(args, one_to_one=False):
                 weight_array.extend(w)
             scl.setWeights(target.getShapes(ni=1)[0], range(len(jnts)), weight_array, False)
         new_scl.append(scl)
-
+    pm.select(kargs)
     return new_scl
     # bld_weight = {}
     # for v in pm.ls(source.vtx, fl=1):
@@ -163,7 +163,8 @@ def export_skins(objs, folder_path=PROJECT_DIR + "/skinWeight/"):
         else:
             "=SKIN= Export skin weight does not support {}.".format(geom.type())
             continue
-        weights = [w for w in scl.getWeights(obj)]
+
+        weights = [w for w in scl.getWeights(geom)]
         result_data['weights'] = []
         for w in weights:
             result_data['weights'].extend([round(q, 4) for q in w])
@@ -279,11 +280,17 @@ class SkinDialog(QtWidgets.QDialog):
 
         self.path_line = QtWidgets.QLineEdit()
         proj_path = pm.workspace(q=1, dir=1)
-        sw_folder = "{}/skinWeight/".format(proj_path)
-        if os.path.exists(sw_folder):
-            self.path_line.setText(sw_folder)
-        else:
-            self.path_line.setText(proj_path)
+        scn_name = pm.sceneName().dirname()
+        if scn_name == '':
+            scn_name = proj_path
+
+        sw_folder = "{}/data/skinWeight/".format(scn_name)
+
+        if not os.path.exists(sw_folder):
+            pm.util.path("{}/data/".format(proj_path)).mkdir_p()
+            pm.util.path(sw_folder).mkdir_p()
+
+        self.path_line.setText(sw_folder)
         self.path_line.setReadOnly(True)
         path_layout.addWidget(self.path_line)
 
@@ -365,6 +372,7 @@ class SkinDialog(QtWidgets.QDialog):
 
 
 class SkinToolMod(QtWidgets.QWidget):
+    infl_status_attr = "infl_expand_status"
     def __init__(self, parent=None):
         super(SkinToolMod, self).__init__(parent)
         self.ui_name = 'SkinToolMod'
@@ -491,9 +499,16 @@ class SkinToolMod(QtWidgets.QWidget):
         # use objectTypeUI to find ui type with name
         pm.treeView('theSkinClusterInflList', e=1, ecc=self.get_scl_tree_expand_status)
 
-    @staticmethod
-    def get_scl_tree_expand_status(name, status):
+    def get_scl_tree_expand_status(self, name, status):
+        """
+        get status and set value to custom attribute
+        :param name:
+        :param status:
+        :return:
+        """
         scl = get_skin_cluster(pm.selected()[0])
+        if not scl:
+            return
         infl_collapsed = []
         children = pm.treeView('theSkinClusterInflList', query=1, children=1)
 
@@ -511,16 +526,15 @@ class SkinToolMod(QtWidgets.QWidget):
             if not pm.treeView('theSkinClusterInflList', query=1, isItemExpanded=child):
                 infl_collapsed.append(child)
 
-        if "infl_expand_status" not in pm.listAttr(scl):
-            scl.addAttr("infl_expand_status", dataType='string')
-        scl.infl_expand_status.set('##'.join(infl_collapsed), type='string')
+        if self.infl_status_attr not in pm.listAttr(scl):
+            scl.addAttr(self.infl_status_attr, dataType='string')
+        scl.attr(self.infl_status_attr).set('##'.join(infl_collapsed), type='string')
 
-    @staticmethod
-    def apply_scl_tree_expand_status():
+    def apply_scl_tree_expand_status(self):
         scl = get_skin_cluster(pm.selected()[0])
-        if "infl_expand_status" not in pm.listAttr(scl):
+        if self.infl_status_attr not in pm.listAttr(scl):
             return
-        infl_status = scl.infl_expand_status.get()
+        infl_status = scl.attr(self.infl_status_attr).get()
         infl_list = infl_status.split('##')
         for infl in infl_list:
             if pm.treeView('theSkinClusterInflList', query=1, itemExists=infl):
@@ -528,6 +542,9 @@ class SkinToolMod(QtWidgets.QWidget):
                     pm.treeView('theSkinClusterInflList', edit=1, expandItem=[infl, 0])
                 except:
                     print("Failed on ", infl)
+        # auto show selected item
+        pm.treeView('theSkinClusterInflList', edit=True,
+                    showItem=pm.treeView('theSkinClusterInflList', query=True, selectItem=True)[0])
         # pm.treeView('theSkinClusterInflList', expendItem=SCL_INFLUENCE_EXPAND_STATUS[scl])
 
 
