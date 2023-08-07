@@ -1,3 +1,4 @@
+import re
 import maya.OpenMaya as om
 import pymel.all as pm
 
@@ -15,6 +16,9 @@ reload(channels)
 reload(attributes)
 reload(name_data)
 reload(shape_gen)
+
+side_possible_name = {'l': ['left', 'l', 'le'],
+                      'r': ['right', 'r','ri']}
 
 
 def find_pv(jnt_list, multiplier=5):
@@ -66,35 +70,127 @@ def set_joint_vis(v=True, status=False):
         pm.displayInfo("==JOINT== {}ing Joints.".format('Show' if not v else 'Hid'))
 
 
-def set_joint_label():
+def match_case_pattern(names):
+    if len(names) != 2 and not isinstance(names, list):
+        return
+
+    src, txt = names
+    output = ''
+    for s, t in zip(src, txt):
+        if s.isupper():
+            output = output + t.upper()
+            continue
+        output = output + t
+    return output
+
+
+def find_side_name(obj):
+    if not isinstance(obj, pm.PyNode):
+        obj = pm.PyNode(obj)
+    obj_name = obj.name(stripNamespace=True)
+
+    for side in side_possible_name:
+        for i, name in enumerate(side_possible_name[side]):
+            found = re.search(r'{0}_|_{0}_|_{0}$'.format(name), obj_name, re.IGNORECASE)
+
+            if found:
+                span = found.span()
+                found_txt = obj_name[span[0]:span[1]]
+                mirror = side_possible_name['r' if side == 'l' else 'l'][i]
+                mirror = obj_name.lower().replace(name, mirror)[span[0]:span[1]]
+                mirror = match_case_pattern([found_txt, mirror])
+                if side == 'l':
+                    return found_txt, mirror
+                else:
+                    return mirror, found_txt
+    return None
+
+
+def auto_label_joint(sel):
+    for item in sel:
+        if item.type() != 'joint':
+            continue
+
+        sides = find_side_name(item)
+
+        if not sides:
+            print('Unable to find mirror object for {}'.format(item))
+            set_joint_label(item, side='m')
+            continue
+
+        print(item, sides)
+        if sides[0] in item.name(stripNamespace=True):
+            mir_obj = pm.ls(item.replace(sides[0], sides[1]))
+            if mir_obj:
+                # pass
+                set_joint_label(item, side='l', type_name=item.replace(sides[0], '_'))
+                set_joint_label(mir_obj[0], side='r', type_name=mir_obj[0].replace(sides[1], '_'))
+        else:
+            mir_obj = pm.ls(item.replace(sides[1], sides[0]))
+            if mir_obj:
+                # pass
+                set_joint_label(item, side='r', type_name=item.replace(sides[1], '_'))
+                set_joint_label(mir_obj[0], side='l', type_name=mir_obj[0].replace(sides[0], '_'))
+
+
+def set_joint_label(obj, side='m', type_name=''):
     """
     set joint label
     :return:
     """
-    jnt_list = pm.selected(type='joint')
+    # jnt_list = pm.selected(type='joint')
+    #
+    # if len(jnt_list) == 0:
+    #     print "=JNT= Please make selection. Joint only."
+    #
+    # for jnt in jnt_list:
+    #     split = jnt.split("_")
+    #     jnt.attr('type').set(18)
+    #     if name_data.SIDE_LIST['left'] in split[0]:
+    #         jnt.side.set(1)
+    #         split.pop(0)
+    #     elif name_data.SIDE_LIST['right'] in split[0]:
+    #         jnt.side.set(2)
+    #         split.pop(0)
+    #     elif name_data.SIDE_LIST['middle'] in split[0]:
+    #         jnt.side.set(0)
+    #         split.pop(0)
+    #     else:
+    #         jnt.side.set(0)
+    #     jnt.otherType.set('_'.join(split))
+    if side == 'l':
+        obj.side.set(1)
+    elif side == 'r':
+        obj.side.set(2)
+    else:
+        # everything else is 'center'
+        obj.side.set(0)
 
-    if len(jnt_list) == 0:
-        print "=JNT= Please make selection. Joint only."
+    # set to otherType
+    pm.setAttr(obj + '.type', 18)
 
-    for jnt in jnt_list:
-        split = jnt.split("_")
-        jnt.attr('type').set(18)
-        if name_data.SIDE_LIST['left'] in split[0]:
-            jnt.side.set(1)
-            split.pop(0)
-        elif name_data.SIDE_LIST['right'] in split[0]:
-            jnt.side.set(2)
-            split.pop(0)
-        elif name_data.SIDE_LIST['middle'] in split[0]:
-            jnt.side.set(0)
-            split.pop(0)
-        else:
-            jnt.side.set(0)
-        jnt.otherType.set('_'.join(split))
+    if type_name.startswith('_'):
+        type_name = type_name[1:]
+    if type_name.endswith('_'):
+        type_name = type_name[:-1]
+
+    if type_name:
+        obj.otherType.set(type_name)
+    else:
+        obj.otherType.set(obj.name(stripNamespace=True))
 
 
 def set_joint_size(val):
     pm.jointDisplayScale(val, a=True)
+
+
+def show_joint():
+    editors = [q for q in pm.lsUI(p=1) if q.type() == 'modelEditor']
+    status = pm.modelEditor(editors[0].split('|')[-1], q=1, j=1)
+
+    for ed in editors:
+        name = ed.split('|')[-1]
+        pm.modelEditor(name, e=1, j=False if status else True)
 
 
 def create_ik_spline_chain(jnts, prefix='temp', skin_joint=5, forward='x'):
