@@ -1,10 +1,75 @@
 import os
 
+import maya.mel as mel
+import maya.cmds as cmds
 import maya.OpenMayaUI as omui
 from PySide2 import QtWidgets, QtCore, QtGui
 from shiboken2 import wrapInstance
 
 dark_style = os.path.abspath(__file__).split('utils')[0] + 'data\\stylesheet.qss'
+
+
+def eliminate_outliner_callback(client_data):
+    """
+    delete "Cant find procedure 'look' "
+    :param client_data:
+    :return:
+    """
+    all_panels = cmds.getPanel(type="outlinerPanel") or []
+    for panel in all_panels:
+
+        sc = cmds.outlinerEditor(panel, q=True, selectCommand=True)
+        if sc is not None:  # if there are selectCommand set...
+
+            print("KILL INFECTED outliner!!!")
+
+            cmds.outlinerPanel(panel, e=True, unParent=True)  # remove infected panel
+            cmds.file(uiConfiguration=False)  # mark as do not save ui info within scene file
+
+            if (
+                    cmds.optionVar(exists="useScenePanelConfig") and
+                    cmds.optionVar(q="useScenePanelConfig") == 0
+            ):
+                mel.eval("$gOutlinerPanelNeedsInit = 1;")  # flag to restore later
+
+    mel.eval("initOutlinerPanel();")  # restore outliner if flagged
+
+
+def eliminate_model_panel_callback(*args):
+    """
+    remove call back
+    :param args:
+    :return:
+    """
+
+    EVIL_METHOD_NAMES = ['DCF_updateViewportList', 'CgAbBlastPanelOptChangeCallback']
+
+    model_panel_label = mel.eval('localizedPanelLabel("ModelPanel")')
+    processed = []
+
+    panel_name = cmds.sceneUIReplacement(getNextPanel=('modelPanel', model_panel_label))
+    while panel_name and panel_name not in processed:
+
+        editor_changed_cb_text = cmds.modelEditor(panel_name, query=True, editorChanged=True)
+        suspected_lines = editor_changed_cb_text.split(';')
+        purified_lines = []
+        changed = False
+
+        for line in suspected_lines:
+            for evil in EVIL_METHOD_NAMES:
+                if evil.upper() in line.upper():
+                    changed = True
+                    break
+            else:
+                purified_lines.append(line)
+
+        if changed:
+            # logger.info("kill infected modelPanel %s", panel_name)
+            cmds.modelEditor(panel_name, edit=True, editorChanged=';'.join(purified_lines))
+            cmds.file(uiConfiguration=False)  # mark as do not save ui info within scene file
+
+        processed.append(panel_name)
+        panel_name = cmds.sceneUIReplacement(getNextPanel=('modelPanel', model_panel_label))
 
 
 def get_maya_window():
