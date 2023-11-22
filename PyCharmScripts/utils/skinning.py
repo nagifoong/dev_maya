@@ -89,7 +89,7 @@ def copy_skin(kargs, one_to_one=False):
                                influenceAssociation=['name', 'label', 'oneToOne'], normalize=True)
         else:
             # maybe add condition to make sure vertices or cv counts are same with source
-            weights = source_scl.getWeights(source)
+            weights = source_scl.getWeights(source_scl.getGeometry()[0])
             weight_array = []
             for w in weights:
                 weight_array.extend(w)
@@ -179,7 +179,7 @@ def export_skins(objs, folder_path=PROJECT_DIR + "/skinWeight/"):
     return
 
 
-def import_skin(obj, file_path=''):
+def import_skin(obj, file_path='', ignore_namespace=True):
     """
     import skin to obj. Only work for one object per run
     :param obj:
@@ -222,6 +222,9 @@ def import_skin(obj, file_path=''):
     scl = get_skin_cluster(obj)
     if scl:
         scl.unbind()
+
+    if ignore_namespace:
+        result['joint'] = [j.split(":")[-1] for j in result['joint']]
 
     # create joint if missing
     for jnt in result['joint']:
@@ -287,7 +290,7 @@ class SkinDialog(QtWidgets.QDialog):
         sw_folder = "{}/data/skinWeight/".format(scn_name)
 
         if not os.path.exists(sw_folder):
-            pm.util.path("{}/data/".format(proj_path)).mkdir_p()
+            pm.util.path("{}/data/".format(scn_name)).mkdir_p()
             pm.util.path(sw_folder).mkdir_p()
 
         self.path_line.setText(sw_folder)
@@ -307,6 +310,10 @@ class SkinDialog(QtWidgets.QDialog):
 
         info_label = QtWidgets.QLabel('** Import based on file name. ')
         main_layout.addWidget(info_label)
+
+        self.ns_cb = QtWidgets.QCheckBox('Ignore Namespace')
+        main_layout.addWidget(self.ns_cb)
+        self.ns_cb.setChecked(True)
 
         bts_layout = QtWidgets.QHBoxLayout()
         main_layout.addLayout(bts_layout)
@@ -368,7 +375,8 @@ class SkinDialog(QtWidgets.QDialog):
                     "=SKIN= Unable to find {} in scene.".format(obj_name)
                     continue
 
-                import_skin(obj_name, file_path=self.path_line.text() + i.text())
+                import_skin(obj_name, file_path=self.path_line.text() + i.text(),
+                            ignore_namespace=self.ns_cb.checkState())
 
 
 class SkinToolMod(QtWidgets.QWidget):
