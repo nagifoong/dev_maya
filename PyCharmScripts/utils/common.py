@@ -121,6 +121,7 @@ def group_pivot(obj, layer=None, world=True):
         if lay in TYPE_LIST.keys():
             lay = TYPE_LIST[lay]
         grp = create_name(side='', name=obj.name(), fn=lay, _type='group', create=True)
+        grp.ro.set(obj.ro.get())
         if grps:
             grps[-1].addChild(grp)
         grps.append(grp)
