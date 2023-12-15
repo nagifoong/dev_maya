@@ -14,7 +14,9 @@ for p in pathList:
 from PyCharmScripts.shelves import shelf_toolbelt
 reload(shelf_toolbelt)
 
-cmds.evalDeferred("shelf_toolbelt.clear_shelves();shelf_toolbelt.ToolBeltShelf();pm.evalDeferred('shelf_toolBelt_var.build()')")
+cmds.evalDeferred("shelf_toolbelt.clear_shelves();"
+                  "shelf_toolBelt_var=shelf_toolbelt.ToolBeltShelf();"
+                  "pm.evalDeferred('shelf_toolBelt_var.build()')")
 
 
 def aSave(n):
