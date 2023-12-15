@@ -60,6 +60,15 @@ def create_scl(*argv, **kargv):
     return scl
 
 
+def get_bind_joints(sel):
+    jnts = []
+    for s in sel:
+        scl = get_skin_cluster(s)
+        if scl:
+            jnts.extend([j.name() for j in scl.influenceObjects()])
+    pm.select(jnts)
+
+
 def copy_skin(kargs, one_to_one=False):
     """
     Copy skin cluster, create new skin cluster if target is not skinned.
