@@ -1,12 +1,25 @@
+"""
+Usage
+
+from PyCharmScripts.shelves import shelf_toolbelt
+reload(shelf_toolbelt)
+
+
+shelf_toolbelt.clear_shelves()
+shelf_toolBelt_var=shelf_toolbelt.ToolBeltShelf()
+pm.evalDeferred('shelf_toolBelt_var.build()')
+"""
+
 import os
 
 import pymel.all as pm
 from PySide2 import QtWidgets
 from ..data import color_data
 import custom_ui
-from ..utils import ui_utils
+from ..utils import ui_utils, hotkey
 
 reload(custom_ui)
+reload(hotkey)
 
 current_user = os.environ.get('USERNAME')
 custom_icon_path = "{}icons\\".format(os.path.abspath(__file__).split('shelves')[0])
@@ -53,21 +66,21 @@ class _Shelf(object):
         # pm.setParent(self.name)
 
     def add_bt(self, label='', icon='commandButton.png', command='', ann='', double_command='',
-               mi=(), mip=0, no_popup=True):
+               mi=(), mip=0, no_popup=True, script_type='python'):
         pm.setParent(self.name)
         if icon:
             icon = self.icon_path + icon
         bt = pm.shelfButton(width=self.size, height=self.size, image=icon, l=label, command=command, annotation=ann,
                             dcc=double_command, imageOverlayLabel=label, olb=self.label_bg, olc=self.label_color,
-                            mip=mip, mi=mi, noDefaultPopup=no_popup)
+                            mip=mip, mi=mi, noDefaultPopup=no_popup, sourceType=script_type)
         return bt
 
-    def add_menu_item(self, parent, label='', command='', icon='', divider=False):
+    def add_menu_item(self, parent, label='', command='', icon='', divider=False, script_type='python'):
         if icon:
             icon = self.icon_path + icon
         if divider:
             return pm.menuItem(p=parent, divider=divider)
-        return pm.menuItem(p=parent, l=label, c=command, i=icon)
+        return pm.menuItem(p=parent, l=label, c=command, i=icon, sourceType=script_type)
 
     def add_sub_menu(self, parent, label='', icon=''):
         if icon:
@@ -109,25 +122,39 @@ class ToolBeltShelf(_Shelf):
         # print('got here before')
         # self.build()
         # print('got here now')
+        hotkey.create()
 
     def build(self):
         self.add_bt(label='', ann='Reload Shelf', icon='refresh.png', no_popup=True,
                     command='from PyCharmScripts.shelves import shelf_toolbelt; reload(shelf_toolbelt); '
-                            'shelf_toolBelt_var=shelf_toolbelt.ToolBeltShelf();pm.evalDeferred("shelf_toolBelt_var.build()")')
+                            'pm.evalDeferred("shelf_toolBelt_var=shelf_toolbelt.ToolBeltShelf();shelf_toolBelt_var.build()")')
         o = pm.popupMenu(b=0)
         self.add_menu_item(o, 'Get child array',
                            command='from PyCharmScripts.shelves import shelf_toolbelt; reload(shelf_toolbelt); '
                                    'shelf_toolBelt_var.read()')
-
+        self.add_menu_item(o, divider=True)
+        self.add_menu_item(o, 'Set Y up', command="pm.mel.eval('setUpAxis \"y\"')")
+        self.add_menu_item(o, 'Set Z up', command="pm.mel.eval('setUpAxis \"z\"')")
+        self.add_menu_item(o, 'Delete Unused Node', command="pm.mel.eval('hyperShadePanelMenuCommand"
+                                                            "(\"hyperShadePanel1\", \"deleteUnusedNodes\");')")
+        self.add_menu_item(o, divider=True)
+        self.add_menu_item(o, 'Delete "look" error', command="from PyCharmScripts.utils import ui_utils as ut;"
+                                                             "ut.eliminate_outliner_callback(1)")
+        self.add_menu_item(o, 'Delete "CgAbBlast" error', command="from PyCharmScripts.utils import ui_utils as ut;"
+                                                                  "ut.eliminate_model_panel_callback(1)")
         self.add_separator()
         # editors
-        self.add_bt(label='EDI', ann='Editors', icon='menuIconWindow.png', no_popup=True)
-        o = pm.popupMenu(b=1)
+        self.add_bt(label='EDI', ann='Editors', icon='menuIconWindow.png', no_popup=True,
+                    command='pm.mel.eval("NodeEditorWindow")')
+        o = pm.popupMenu(b=3)
         self.add_menu_item(o, 'Node Editor', command='pm.mel.eval("NodeEditorWindow")')
         self.add_menu_item(o, 'Component Editor', command='pm.mel.eval("ComponentEditor")')
         self.add_menu_item(o, 'Connection Editor', command='pm.mel.eval("ConnectionEditor")')
         self.add_menu_item(o, 'Attribute Spreadsheet', command='pm.mel.eval("SpreadSheetEditor")')
         self.add_menu_item(o, 'Shape Editor', command='pm.mel.eval("ShapeEditor")')
+        self.add_menu_item(o, divider=True)
+        self.add_menu_item(o, 'Namespace Editor', command='pm.mel.eval("NamespaceEditor")')
+        self.add_menu_item(o, 'File Path Editor', command='pm.mel.eval("FilePathEditor")')
         self.add_menu_item(o, divider=True)
         self.add_menu_item(o, 'Expression Editor', command='pm.mel.eval("ExpressionEditor")')
         self.add_menu_item(o, 'Graph Editor', command='pm.mel.eval("GraphEditor")')
@@ -142,10 +169,12 @@ class ToolBeltShelf(_Shelf):
         self.add_menu_item(o, 'Face Normal', command='pm.mel.eval("ToggleFaceNormalDisplay")')
         self.add_menu_item(o, 'Local Rotation Axis', command='pm.mel.eval("ToggleLocalRotationAxes")')
 
-        self.add_bt(label='Sel', ann='Select Hierarchy', icon='menuIconSelect.png', no_popup=True)
-        o = pm.popupMenu(b=1)
-        self.add_menu_item(o, 'Select Hierarchy', command='pm.mel.eval("SelectHierarchy")')
-        self.add_menu_item(o, 'Select Joints', command='pm.mel.eval("SelectAllJoints")')
+        self.add_bt(label='Sel', ann='Select Hierarchy', icon='menuIconSelect.png', no_popup=True,
+                    command='pm.mel.eval("SelectHierarchy")')
+        o = pm.popupMenu(b=0)
+        self.add_menu_item(o, 'Select Joints', command='pm.select(pm.ls(sl=1, type="joint"))')
+        self.add_menu_item(o, 'Save selection', command='_temp_sel = pm.selected()')
+        self.add_menu_item(o, 'Load selection', command='pm.select(_temp_sel, add=True)')
 
         self.add_bt(label='FT', ann='Freeze Transform', icon='menuIconModify.png',
                     command='pm.mel.eval("FreezeTransformations")')
@@ -164,35 +193,43 @@ class ToolBeltShelf(_Shelf):
 
         # joints & skinning
         self.add_bt(label='', ann='Create Joint', icon='kinJoint.png', no_popup=True,
-                    command='pm.mel.eval("JointTool")', double_command='pm.mel.eval("JointToolOptions")')
+                    command='from PyCharmScripts.utils import vertsFunc as vf;reload(vf);\n'
+                            'if pm.selected():'
+                            '   vf.find_center(sel, create_obj=pm.joint)\n'
+                            'else:'
+                            '    pm.select(cl=1);'
+                            '    pm.joint();',
+                    double_command='pm.select(cl=1);pm.joint()')
         o = pm.popupMenu(b=0)
-        self.add_menu_item(o, 'Create Joint on grid',
-                           command='pm.select(cl=1);pm.joint()')
-        self.add_menu_item(o, 'Create Joint on components center',
-                           command='from PyCharmScripts.utils import vertsFunc as vf;reload(vf);sel = pm.selected()\n'
-                                   'if sel:'
-                                   '    vf.find_center(sel, create_obj=pm.joint)\n'
-                                   'else:'
-                                   '    pm.select(cl=1);'
-                                   '    pm.joint();')
+        self.add_menu_item(o, 'Joint Tool', command='pm.mel.eval("JointTool")')
+        # self.add_menu_item(o, 'Create Joint on grid',
+        #                    command='pm.select(cl=1);pm.joint()')
+        # self.add_menu_item(o, 'Create Joint on components center',
+        #                    command='from PyCharmScripts.utils import vertsFunc as vf;reload(vf);sel = pm.selected()\n'
+        #                            'if sel:'
+        #                            '    vf.find_center(sel, create_obj=pm.joint)\n'
+        #                            'else:'
+        #                            '    pm.select(cl=1);'
+        #                            '    pm.joint();')
         self.add_menu_item(o, 'Reset joint orient',
                            command='[q.jo.set([0] * 3) for q in pm.selected()]')
         qt_menu = ui_utils.convert_to_qt(o, QtWidgets.QMenu)
         joint_radius_slider = custom_ui.JointRadiusSlider(parent=qt_menu)
         qt_menu.addAction(joint_radius_slider)
 
-        self.add_bt(label='Vis', ann='Show or Hide Joint. Click once for show, twice for hide',
-                    icon='kinJoint.png', no_popup=True,
-                    command='from PyCharmScripts.utils import joints; reload(joints); '
-                            'joints.set_joint_vis(v=False, status=True)',
-                    double_command='from PyCharmScripts.utils import joints; reload(joints); '
-                                   'joints.set_joint_vis(v=True, status=True)')
+        # self.add_bt(label='Vis', ann='Show or Hide Joint. Click once for show, twice for hide',
+        #             icon='kinJoint.png', no_popup=True,
+        #             command='from PyCharmScripts.utils import joints; reload(joints); '
+        #                     'joints.set_joint_vis(v=False, status=True)',
+        #             double_command='from PyCharmScripts.utils import joints; reload(joints); '
+        #                            'joints.set_joint_vis(v=True, status=True)')
         self.add_bt(label='Label', ann='Auto Set Joint Label', icon='kinJoint.png', no_popup=True,
-                    command='from PyCharmScripts.utils import joints; reload(joints); joints.set_joint_label()')
-        self.add_bt(label='ngSkin', ann='ngSkin Tool', icon='ngSkinToolsShelfIcon.png', no_popup=True,
-                    command='from ngSkinTools.ui.mainwindow import MainWindow;MainWindow.open()')
-        o = pm.popupMenu(b=0)
-        self.add_menu_item(o, 'ngSkinTools2', command='import ngSkinTools2; ngSkinTools2.open_ui()')
+                    command='from PyCharmScripts.utils import joints; reload(joints); '
+                            'joints.auto_label_joint(pm.selected())')
+        # self.add_bt(label='ngSkin', ann='ngSkin Tool', icon='ngSkinToolsShelfIcon.png', no_popup=True,
+        #             command='from ngSkinTools.ui.mainwindow import MainWindow;MainWindow.open()')
+        # o = pm.popupMenu(b=0)
+        # self.add_menu_item(o, 'ngSkinTools2', command='import ngSkinTools2; ngSkinTools2.open_ui()')
 
         self.add_bt(label='', ann='Paint Skin Weight', icon='paintSkinWeights.png', no_popup=True,
                     command='from PyCharmScripts.utils import skinning;reload(skinning); '
@@ -201,17 +238,36 @@ class ToolBeltShelf(_Shelf):
         o = pm.popupMenu(b=0)
         self.add_menu_item(o, 'Bind Skin', command='from PyCharmScripts.utils import skinning; reload(skinning); '
                                                    'skinning.create_scl(pm.selected())')
+        self.add_menu_item(o, 'Add Influence',
+                           command='pm.mel.eval(\'skinClusterInfluence 1 " -dr 4 -lw true -wt 0"\')')
+        self.add_menu_item(o, 'Remove Influence', command='pm.mel.eval(\'RemoveInfluence\')')
+        self.add_menu_item(o, 'Remove Unused Influences', command='pm.mel.eval(\'removeUnusedInfluences\')')
+        self.add_menu_item(o, 'Prune skin weight',
+                           command='pm.mel.eval(\'doPruneSkinClusterWeightsArgList 1 { "0.01" }\')')
+        self.add_menu_item(o, 'Prune and Remove influence',
+                           command='pm.mel.eval(\'doPruneSkinClusterWeightsArgList 1 { "0.01" };'
+                                   'removeUnusedInfluences;\')')
+        self.add_menu_item(o, divider=True)
+        self.add_menu_item(o, 'Go to Bind Pose', command='pm.mel.eval(\'gotoBindPose\')')
+        self.add_menu_item(o, divider=True)
+        self.add_menu_item(o, 'Get Bind Joints', command='from PyCharmScripts.utils import skinning; reload(skinning); '
+                                                         'skinning.get_bind_joints(pm.selected())')
+        self.add_menu_item(o, divider=True)
+        self.add_menu_item(o, 'NgSkin Tool',
+                           command='from ngSkinTools.ui.mainwindow import MainWindow;MainWindow.open()')
+        self.add_menu_item(o, 'NgSkin Tool2',
+                           command='import ngSkinTools2; ngSkinTools2.open_ui()')
 
         self.add_bt(label='', ann='Mirror Skin Weight', icon='mirrorSkinWeight.png', no_popup=True,
-                    command='pm.mel.eval("doMirrorSkinWeightsArgList( 2, { " -mirrorMode YZ '
-                            '-surfaceAssociation closestPoint -influenceAssociation label '
-                            '-influenceAssociation oneToOne" } );")',
-                    double_command='pm.mel.eval("MirrorSkinWeightsOptions")')
+                    command="doMirrorSkinWeightsArgList( 2, { \" -mirrorMode YZ -surfaceAssociation closestPoint "
+                            "-influenceAssociation label -influenceAssociation oneToOne\" } );",
+                    double_command="MirrorSkinWeightsOptions", script_type='mel')
         o = pm.popupMenu(b=0)
         self.add_menu_item(o, 'Mirror -x to +x',
-                           command='pm.mel.eval("doMirrorSkinWeightsArgList( 2, { " -mirrorMode YZ '
-                                   '-mirrorInverse -surfaceAssociation closestPoint '
-                                   '-influenceAssociation label -influenceAssociation oneToOne" } );")')
+                           command="doMirrorSkinWeightsArgList( 2, { \" -mirrorMode YZ "
+                                   "-mirrorInverse -surfaceAssociation closestPoint "
+                                   "-influenceAssociation label -influenceAssociation oneToOne\" } );",
+                           script_type='mel')
 
         self.add_bt(label='', ann='Copy Skin Weight', icon='copySkinWeight.png', no_popup=True,
                     command='pm.mel.eval("CopySkinWeights")',
@@ -220,6 +276,12 @@ class ToolBeltShelf(_Shelf):
         self.add_menu_item(o, 'Copy to multiple object. [source, targets]',
                            command='from PyCharmScripts.utils import skinning;reload(skinning); '
                                    'skinning.copy_skin(pm.selected())')
+        self.add_menu_item(o, 'Copy skin by vertex id. [source, targets]',
+                           command='from PyCharmScripts.utils import skinning;reload(skinning); '
+                                   'skinning.copy_skin(pm.selected(), one_to_one=True)')
+
+        self.add_bt(label='', ann='Weight Hammer', icon='weightHammer.png', no_popup=True,
+                    command='pm.mel.eval("WeightHammer")')
 
         self.add_bt(label='', ann='Import and Export skin weight to file', icon=custom_icon_path + 'in_out.png',
                     no_popup=True, command='from PyCharmScripts.utils import skinning; reload(skinning); '
@@ -313,14 +375,14 @@ class ToolBeltShelf(_Shelf):
         self.add_menu_item(o, 'ScaleConst', command=cmd.format('scale'))
 
         self.add_menu_item(o, divider=True)
-
-        cmd = '[q.attr(at+ax).connect(pm.ls(common.replace_name(q.name(), "ctrl", "joint"))[0].attr(at+ax)) ' \
-              'for q in pm.selected() for at in "{}" for ax in "xyz"]'
+        cmd = import_cmd + '[q.attr(at+ax).connect(pm.ls(common.replace_name(q.name(), "ctrl", "joint"))[0].attr(' \
+                           'at+ax)) for q in pm.selected() for at in "{}" for ax in "xyz"] '
         self.add_menu_item(o, 'Direct Connect (T and R)', command=cmd.format('tr'))
         self.add_menu_item(o, 'Direct Connect (S)', command=cmd.format('s'))
-        self.add_menu_item(o, 'Direct Connect (manual)',
-                           command='[pm.selected()[0].attr(at+ax).connect(pm.selected()[1].attr(at+ax)) '
-                                   'for at in "trs" for ax in "xyz"]')
+        # use selection from channel box
+        self.add_menu_item(o, 'Direct Connect (channelBox)',
+                           command='[pm.selected()[0].attr(at).connect(pm.selected()[1].attr(at)) '
+                                   'for at in cmds.channelBox(\'mainChannelBox\', query=True, sma=True)]')
 
         self.add_bt(label='', ann='Create Rivet to selected vertices. PolyMesh only.',
                     icon=custom_icon_path + 'rivet.png', no_popup=True,
@@ -337,6 +399,27 @@ class ToolBeltShelf(_Shelf):
                     command='pm.mel.eval("ArtPaintAttrToolOptions")')
 
         self.add_separator()
+
+        ADV_PATH = r"C:/Users/lonel/OneDrive/Documents/maya/AdvancedSkeleton/"
+        self.add_bt(label='', ann='Advanced Skeleton',
+                    icon=ADV_PATH + 'AdvancedSkeletonFiles/icons/AS.png',
+                    no_popup=True,
+                    command='pm.mel.eval(\'source "{}AdvancedSkeleton.mel";AdvancedSkeleton;\')'.format(ADV_PATH))
+        self.add_bt(label='', ann='Selector: Biped',
+                    icon=ADV_PATH + 'AdvancedSkeletonFiles/icons/asBiped.png'.format(ADV_PATH),
+                    no_popup=True,
+                    command='pm.mel.eval(\'source "{}AdvancedSkeletonFiles/Selector/biped.mel";\')'.format(ADV_PATH))
+        self.add_bt(label='', ann='Selector: Face',
+                    icon=ADV_PATH + 'AdvancedSkeletonFiles/icons/asFace.png',
+                    no_popup=True,
+                    command='pm.mel.eval(\'source "{}AdvancedSkeletonFiles/Selector/face.mel";\')'.format(ADV_PATH))
+        self.add_bt(label='', ann='Picker',
+                    icon=ADV_PATH + 'AdvancedSkeletonFiles/picker/pickerFiles/icons/picker.png',
+                    no_popup=True,
+                    command='pm.mel.eval(\'source "{}/AdvancedSkeletonFiles/picker/picker.mel";\')'.format(ADV_PATH))
+
+        self.add_separator()
+
         # last button always have weird offset
 
         # TODO: point on surface and point on mesh
