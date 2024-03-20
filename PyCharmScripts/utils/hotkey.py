@@ -23,7 +23,7 @@ def create():
     key = {'k': '!', 'alt': False, 'ctl': False}
     python_command = 'artAttrPaintOperation artAttrSkinPaintCtx Replace;artAttrSkinPaintCtx -edit -pickValue ' \
                      '"artAttrSkinContext"; '
-    create_hotkey(cmd_name='PickSkinWeight', command=python_command, annotation='Pick Skin Weight', **key)
+    create_hotkey(cmd_name='PickSkinWeight', command=python_command, annotation='Pick Skin Weight', cmd_type='mel', **key)
     pm.displayInfo("Set ! for pick skin weight in paint skin weight tool")
 
     key = {'k': '4', 'alt': True, 'ctl': False}
@@ -58,11 +58,11 @@ def empty_hotkey(**kargs):
         pm.hotkey(n='', rn='', **kargs)
 
 
-def create_hotkey(cmd_name='temp', command='', annotation='', **kargs):
+def create_hotkey(cmd_name='temp', command='', annotation='', cmd_type='python', **kargs):
     empty_hotkey(**kargs)
     if not pm.runTimeCommand(cmd_name, query=True, exists=True):
         pm.runTimeCommand(cmd_name, category='Custom Scripts')
-    pm.runTimeCommand(cmd_name, edit=True, command=command,
+    pm.runTimeCommand(cmd_name, edit=True, command=command, commandLanguage=cmd_type,
                       ann=annotation, category='Custom Scripts')
-    cmd = pm.nameCommand('{}Command'.format(cmd_name), command=cmd_name, ann=annotation)
+    cmd = pm.nameCommand('{}Command'.format(cmd_name), command=cmd_name, ann=annotation, sourceType=cmd_type)
     pm.hotkey(name=cmd, **kargs)
